@@ -58,3 +58,5 @@ export async function apiRequest<T>(
 
   return data as T;
 }
+
+export const apiFetch = apiRequest;

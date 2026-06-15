@@ -1,12 +1,6 @@
 import { endpoints } from "@/shared/api/endpoints";
 import { serverApiFetch } from "@/shared/api/server";
-
-export type TableQrInfo = {
-  id: string;
-  name: string;
-  seats: number;
-  available: boolean;
-};
+import type { TableQrInfo } from "../types";
 
 export function getTableByQrToken(qrToken: string) {
   return serverApiFetch<TableQrInfo>(endpoints.tables.byQrToken(qrToken), {
