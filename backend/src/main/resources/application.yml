@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: rms-backend
+  
+  data:
+    mongodb:
+      uri: mongodb+srv://son11820049c_db_user:nKhbpCpTI0jih317@cluster0.kwvg97e.mongodb.net/?appName=Cluster0
+      database: rms
+
+server:
+  port: 8017
+
+jwt:
+  secret: ${JWT_SECRET:bXlTZWNyZXRLZXlGb3JKV1RUb2tlbkdlbmVyYXRpb25NdXN0QmVBdExlYXN0MjU2Qml0c0xvbmcxMjM0NTY3ODk=}
+  expiration: 86400000
+  refresh-expiration: 604800000
+
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:3000
+
+
