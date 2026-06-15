@@ -23,5 +23,5 @@ public class Order {
     private Double finalPrice;
     private String note;
     private LocalDateTime createdAt;
-    private String status; // NEW, PREPARING, SERVED, PAID, CANCELLED
+    private String status; // Stored as String for backward compatibility.
 }

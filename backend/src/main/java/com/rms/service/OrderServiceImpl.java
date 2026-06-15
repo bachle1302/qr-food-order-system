@@ -10,6 +10,7 @@ import com.rms.exception.ResourceNotFoundException;
 import com.rms.model.Dish;
 import com.rms.model.Order;
 import com.rms.model.OrderItem;
+import com.rms.model.OrderStatus;
 import com.rms.model.Table;
 import com.rms.repository.DishRepository;
 import com.rms.repository.OrderRepository;
@@ -76,7 +77,7 @@ public class OrderServiceImpl implements OrderService {
                 .finalPrice(total)
                 .note(request.getNote())
                 .createdAt(LocalDateTime.now())
-                .status("NEW")
+                .status(OrderStatus.NEW.name())
                 .build();
 
         orderRepository.save(order);
@@ -143,9 +144,47 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateStatus(String id, String status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        order.setStatus(status);
+        OrderStatus currentStatus = parseExistingStatus(order.getStatus());
+        OrderStatus nextStatus = parseRequestedStatus(status);
+
+        if (!currentStatus.canTransitionTo(nextStatus)) {
+            throw new BadRequestException(
+                    "Cannot transition order status from " + currentStatus.name() + " to " + nextStatus.name());
+        }
+
+        order.setStatus(nextStatus.name());
         orderRepository.save(order);
         return toResponse(order);
+    }
+
+    @Override
+    public OrderResponse markPaid(String id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        OrderStatus currentStatus = parseExistingStatus(order.getStatus());
+
+        if (currentStatus.isTerminal()) {
+            throw new BadRequestException("Cannot mark " + currentStatus.name() + " order as PAID");
+        }
+
+        if (currentStatus == OrderStatus.PAID) {
+            return toResponse(order);
+        }
+
+        // Internal payment workflow may mark an order as PAID after payment succeeds.
+        order.setStatus(OrderStatus.PAID.name());
+        orderRepository.save(order);
+        return toResponse(order);
+    }
+
+    private OrderStatus parseExistingStatus(String status) {
+        return OrderStatus.from(status)
+                .orElseThrow(() -> new BadRequestException("Current order status is invalid: " + status));
+    }
+
+    private OrderStatus parseRequestedStatus(String status) {
+        return OrderStatus.from(status)
+                .orElseThrow(() -> new BadRequestException("Invalid order status: " + status));
     }
 
     @Override

@@ -12,6 +12,7 @@ public interface OrderService {
     OrderResponse createWithQrToken(OrderRequest request);
     OrderResponse update(String id, OrderRequest request);
     OrderResponse updateStatus(String id, String status);
+    OrderResponse markPaid(String id);
     OrderResponse getById(String id);
     List<OrderResponse> getAll();
     List<OrderResponse> getByTableId(String tableId);

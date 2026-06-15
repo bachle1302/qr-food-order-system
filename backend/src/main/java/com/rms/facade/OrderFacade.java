@@ -89,8 +89,8 @@ public class OrderFacade {
         PaymentResponse paymentResponse = paymentService.create(paymentRequest);
         log.info("Facade: Payment recorded with ID: {}", paymentResponse.getId());
         
-        // Step 5: Update order status
-        orderService.updateStatus(orderResponse.getId(), "PAID");
+        // Step 5: Mark order as paid after successful payment workflow
+        orderService.markPaid(orderResponse.getId());
         log.info("Facade: Order status updated to PAID");
         
         return OrderPaymentResult.builder()

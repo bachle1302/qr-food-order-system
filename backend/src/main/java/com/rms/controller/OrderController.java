@@ -1,17 +1,18 @@
 package com.rms.controller;
 
 import com.rms.dto.request.OrderRequest;
+import com.rms.dto.request.UpdateOrderStatusRequest;
 import com.rms.dto.response.DailySummaryResponse;
 import com.rms.dto.response.OrderResponse;
 import com.rms.facade.OrderFacade;
 import com.rms.service.OrderService;
+import jakarta.validation.Valid;
 
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -76,9 +77,10 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/status")
-    public OrderResponse updateStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
-        String status = body.get("status");
-        return orderService.updateStatus(id, status);
+    public OrderResponse updateStatus(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateOrderStatusRequest request) {
+        return orderService.updateStatus(id, request.getStatus());
     }
 
     @DeleteMapping("/{id}")
