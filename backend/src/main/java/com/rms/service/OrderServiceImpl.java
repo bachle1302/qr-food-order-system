@@ -36,6 +36,7 @@ public class OrderServiceImpl implements OrderService {
     private final DishRepository dishRepository;
     private final TableRepository tableRepository;
     private final MongoTemplate mongoTemplate;
+    private final OrderEventService orderEventService;
 
     @Override
     public OrderResponse create(OrderRequest request) {
@@ -88,7 +89,9 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderRepository.save(order);
-        return toResponse(order);
+        OrderResponse response = toResponse(order);
+        orderEventService.publishOrderCreated(response);
+        return response;
     }
 
     private OrderItem toOrderItem(OrderItemRequest r) {
@@ -161,7 +164,9 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(nextStatus.name());
         orderRepository.save(order);
-        return toResponse(order);
+        OrderResponse response = toResponse(order);
+        orderEventService.publishOrderStatusChanged(response);
+        return response;
     }
 
     @Override
@@ -181,7 +186,9 @@ public class OrderServiceImpl implements OrderService {
         // Internal payment workflow may mark an order as PAID after payment succeeds.
         order.setStatus(OrderStatus.PAID.name());
         orderRepository.save(order);
-        return toResponse(order);
+        OrderResponse response = toResponse(order);
+        orderEventService.publishOrderStatusChanged(response);
+        return response;
     }
 
     private OrderStatus parseExistingStatus(String status) {

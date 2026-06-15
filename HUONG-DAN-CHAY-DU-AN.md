@@ -1288,6 +1288,75 @@ Các trạng thái order có thể sử dụng khi cập nhật:
 
 ---
 
+## Chạy Backend + MongoDB bằng Docker Compose
+
+Docker Compose dùng cho môi trường development, chạy backend Spring Boot cùng MongoDB local trong container.
+
+### Yêu cầu
+
+- Docker Desktop hoặc Docker Engine có hỗ trợ Docker Compose.
+- Không commit file `.env` thật lên git.
+
+### Bước 1: Tạo file env local từ mẫu
+
+```bash
+cp .env.example .env
+```
+
+Trên Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+File `.env.example` chỉ chứa giá trị mẫu. Khi dùng production, phải thay `JWT_SECRET`, `MONGODB_URI`, `CORS_ALLOWED_ORIGINS` và frontend API URL bằng giá trị thật của môi trường deploy.
+
+### Bước 2: Chạy backend và MongoDB
+
+```bash
+docker compose up --build
+```
+
+Backend chạy tại:
+
+```txt
+http://localhost:8017
+```
+
+MongoDB được expose cho local dev tại:
+
+```txt
+localhost:27017
+```
+
+Trong Docker Compose, backend kết nối MongoDB bằng service hostname:
+
+```txt
+mongodb://mongodb:27017/rms
+```
+
+Không dùng `localhost` cho MongoDB URI bên trong container backend.
+
+### Dừng Docker Compose
+
+```bash
+docker compose down
+```
+
+Dừng và xóa volume MongoDB nếu muốn reset database:
+
+```bash
+docker compose down -v
+```
+
+### Kiểm tra cấu hình Compose
+
+```bash
+docker compose config
+```
+
+---
+
 ## Xử Lý Lỗi Thường Gặp
 
 ### 1. Port đã được sử dụng

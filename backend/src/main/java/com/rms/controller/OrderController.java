@@ -5,13 +5,16 @@ import com.rms.dto.request.UpdateOrderStatusRequest;
 import com.rms.dto.response.DailySummaryResponse;
 import com.rms.dto.response.OrderResponse;
 import com.rms.facade.OrderFacade;
+import com.rms.service.OrderEventService;
 import com.rms.service.OrderService;
 import jakarta.validation.Valid;
 
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -21,6 +24,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderEventService orderEventService;
     private final OrderFacade orderFacade; // Using Facade Pattern
 
     @PostMapping
@@ -59,6 +63,11 @@ public class OrderController {
     public OrderFacade.OrderPaymentResult getWithPayment(@PathVariable String id) {
         // Using Facade Pattern to get complete order information
         return orderFacade.getOrderWithPayment(id);
+    }
+
+    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeOrderEvents() {
+        return orderEventService.subscribe();
     }
 
     @GetMapping("/manage")

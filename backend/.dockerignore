@@ -1,4 +1,6 @@
-SKILL.md
+target/
+.mvn/
+*.log
 .env
 .env.*
 !.env.example

@@ -46,6 +46,9 @@ public class SecurityConfig {
                         // Cho phép tạo order (POST only)
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders").permitAll()
 
+                        // Realtime order events cho STAFF/ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/orders/events").hasAnyAuthority("ADMIN", "STAFF")
+
                         // Quan ly order cho STAFF/ADMIN
                         .requestMatchers("/api/orders/manage").hasAnyAuthority("ADMIN", "STAFF")
                         .requestMatchers("/api/orders/manage/**").hasAnyAuthority("ADMIN", "STAFF")
