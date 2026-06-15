@@ -16,6 +16,9 @@ public interface OrderService {
     OrderResponse getById(String id);
     List<OrderResponse> getAll();
     List<OrderResponse> getByTableId(String tableId);
+    List<OrderResponse> getManageOrders(String status, String tableId, LocalDate fromDate, LocalDate toDate);
+    List<OrderResponse> getNewOrdersForManagement();
+    List<OrderResponse> getKitchenOrders();
     void delete(String id);
     DailySummaryResponse getDailySummary(LocalDate date);
 

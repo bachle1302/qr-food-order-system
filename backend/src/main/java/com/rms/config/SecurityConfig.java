@@ -45,6 +45,10 @@ public class SecurityConfig {
                         
                         // Cho phép tạo order (POST only)
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders").permitAll()
+
+                        // Quan ly order cho STAFF/ADMIN
+                        .requestMatchers("/api/orders/manage").hasAnyAuthority("ADMIN", "STAFF")
+                        .requestMatchers("/api/orders/manage/**").hasAnyAuthority("ADMIN", "STAFF")
                         
                         // Cho phép xem thông tin món ăn (GET only)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/dishes/**").permitAll()

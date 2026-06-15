@@ -16,10 +16,16 @@ import com.rms.repository.DishRepository;
 import com.rms.repository.OrderRepository;
 import com.rms.repository.TableRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -29,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final DishRepository dishRepository;
     private final TableRepository tableRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public OrderResponse create(OrderRequest request) {
@@ -201,6 +208,62 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderResponse> getByTableId(String tableId) {
         return orderRepository.findByTableId(tableId).stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<OrderResponse> getManageOrders(String status, String tableId, LocalDate fromDate, LocalDate toDate) {
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        if (status != null && !status.isBlank()) {
+            criteria.add(Criteria.where("status").is(parseRequestedStatus(status).name()));
+        }
+
+        if (tableId != null && !tableId.isBlank()) {
+            criteria.add(Criteria.where("tableId").is(tableId));
+        }
+
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new BadRequestException("fromDate must be before or equal to toDate");
+        }
+
+        if (fromDate != null || toDate != null) {
+            Criteria createdAtCriteria = Criteria.where("createdAt");
+            if (fromDate != null) {
+                createdAtCriteria = createdAtCriteria.gte(fromDate.atStartOfDay());
+            }
+            if (toDate != null) {
+                createdAtCriteria = createdAtCriteria.lt(toDate.plusDays(1).atStartOfDay());
+            }
+            criteria.add(createdAtCriteria);
+        }
+
+        if (!criteria.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteria.toArray(Criteria[]::new)));
+        }
+
+        query.with(Sort.by(Sort.Direction.DESC, "createdAt"));
+        return mongoTemplate.find(query, Order.class).stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<OrderResponse> getNewOrdersForManagement() {
+        return orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.NEW.name())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<OrderResponse> getKitchenOrders() {
+        List<String> kitchenStatuses = Arrays.asList(
+                OrderStatus.CONFIRMED.name(),
+                OrderStatus.PREPARING.name(),
+                OrderStatus.READY.name());
+        return orderRepository.findByStatusInOrderByCreatedAtAsc(kitchenStatuses)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
