@@ -1,7 +1,15 @@
 export const endpoints = {
   auth: {
     login: "/api/auth/login",
+    register: "/api/auth/register",
     refresh: "/api/auth/refresh",
+  },
+  users: {
+    list: "/api/users",
+    byId: (userId: string) =>
+      `/api/users/${encodeURIComponent(userId)}`,
+    status: (userId: string) =>
+      `/api/users/${encodeURIComponent(userId)}/status`,
   },
   tables: {
     list: "/api/tables",
