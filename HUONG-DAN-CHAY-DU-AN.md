@@ -107,9 +107,33 @@ mvn clean install -DskipTests
 
 ---
 
-## Tạo Tài Khoản ADMIN Đầu Tiên
+## Tạo Tài Khoản & Dữ Liệu Mẫu (Dev Seed Data)
 
-**⚠️ QUAN TRỌNG:** Trước khi sử dụng hệ thống, bạn cần tạo tài khoản ADMIN đầu tiên trực tiếp trong MongoDB.
+Khi bạn khởi chạy backend ở chế độ phát triển, hệ thống sẽ **tự động sinh ra dữ liệu mẫu** để hỗ trợ kiểm thử nhanh nếu thỏa cả hai điều kiện:
+
+* `SPRING_PROFILES_ACTIVE=dev`
+* `APP_SEED_ENABLED=true`
+
+Seeder là idempotent, không tạo trùng dữ liệu khi restart backend.
+
+* **Tài khoản ADMIN mẫu:**
+  * **Email:** `admin@qrfood.local`
+  * **Mật khẩu:** `Admin@123456`
+* **Tài khoản STAFF mẫu:**
+  * **Email:** `staff@qrfood.local`
+  * **Mật khẩu:** `Staff@123456`
+* **Dữ liệu mẫu khác:** Tự động sinh ra 4 bàn ăn (Bàn 1, Bàn 2, Bàn 3, Bàn VIP 1) đã có sẵn `qrToken` ngẫu nhiên bảo mật, danh mục món ăn (Khai vị, Món chính, Đồ uống, Tráng miệng, Combo), các món ăn mẫu tương ứng và 2 mã giảm giá mẫu (`WELCOME10` và `LUNCH20`).
+* **Cách tắt dữ liệu mẫu:** Đặt `APP_SEED_ENABLED=false` trong file `.env` hoặc biến môi trường runtime.
+* **Cách lấy `qrToken` bàn mẫu:** Xem log dev khi backend seed bàn mới, hoặc xem collection `tables` trong MongoDB. API `GET /api/tables` hiện chỉ trả thông tin bàn public và không trả `qrToken`.
+* **Cách test frontend:** Mở frontend tại route `/qr/{qrToken}` với token lấy từ log dev/MongoDB.
+
+Production không được dùng tài khoản mẫu và không chạy seed. Vì seeder có `@Profile("dev")`, profile production sẽ không chạy seeder; khi deploy vẫn nên đặt `APP_SEED_ENABLED=false`.
+
+---
+
+## Tạo Tài Khoản ADMIN Thủ Công (Dành cho Production hoặc khi tắt Seeder)
+
+**⚠️ QUAN TRỌNG:** Nếu không sử dụng tính năng tự động tạo dữ liệu mẫu ở trên (ví dụ chạy trên môi trường production), bạn cần tạo tài khoản ADMIN đầu tiên trực tiếp trong MongoDB.
 
 ### Cách 1: Sử dụng MongoDB Compass hoặc Atlas
 

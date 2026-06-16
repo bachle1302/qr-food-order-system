@@ -4,8 +4,8 @@ spring:
   
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/rms}
-      database: ${MONGODB_DATABASE:rms}
+      uri: mongodb+srv://bach130204_db_user:OlQm0r5vp1uwxFWX@cluster0.1mmqp3a.mongodb.net/?appName=Cluster0
+      database: MONGODB_DATABASE:DACNTT
 
 server:
   port: ${SERVER_PORT:8017}
@@ -17,5 +17,9 @@ jwt:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:true}
 
 

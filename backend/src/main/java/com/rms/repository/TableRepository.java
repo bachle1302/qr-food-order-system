@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface TableRepository extends MongoRepository<Table, String> {
     Optional<Table> findByQrToken(String qrToken);
     boolean existsByQrToken(String qrToken);
+    boolean existsByName(String name);
 }

@@ -8,4 +8,5 @@ import java.util.List;
 public interface DishRepository extends MongoRepository<Dish, String> {
     List<Dish> findByCategoryId(String categoryId);
     List<Dish> findByAvailableTrue();
+    boolean existsByName(String name);
 }
