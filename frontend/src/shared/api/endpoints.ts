@@ -15,6 +15,9 @@ export const endpoints = {
   },
   categories: {
     list: "/api/categories",
+    create: "/api/categories",
+    byId: (categoryId: string) =>
+      `/api/categories/${encodeURIComponent(categoryId)}`,
   },
   dishes: {
     list: "/api/dishes",
