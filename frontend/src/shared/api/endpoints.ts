@@ -46,6 +46,9 @@ export const endpoints = {
     manage: "/api/orders/manage",
     manageNew: "/api/orders/manage/new",
     kitchen: "/api/orders/manage/kitchen",
+    dailySummary: "/api/orders/summary/daily",
+    dailyRevenue: "/api/orders/revenue/daily",
+    monthlyRevenue: "/api/orders/revenue/monthly",
     updateStatus: (orderId: string) =>
       `/api/orders/${encodeURIComponent(orderId)}/status`,
     events: "/api/orders/events",
