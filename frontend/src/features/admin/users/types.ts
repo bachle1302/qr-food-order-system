@@ -6,7 +6,7 @@ export type AdminUser = {
   displayName?: string | null;
   avatar?: string | null;
   role: UserRole;
-  isActive?: boolean | null;
+  isActive: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
