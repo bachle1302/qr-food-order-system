@@ -21,6 +21,9 @@ export const endpoints = {
   },
   dishes: {
     list: "/api/dishes",
+    create: "/api/dishes",
+    byId: (dishId: string) =>
+      `/api/dishes/${encodeURIComponent(dishId)}`,
   },
   orders: {
     publicQr: "/api/orders/public/qr",
