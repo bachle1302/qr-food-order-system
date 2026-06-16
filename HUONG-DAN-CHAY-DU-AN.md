@@ -1447,3 +1447,57 @@ java -jar backend/target/rms-0.0.1-SNAPSHOT.jar
 - **JWT** - Token authentication
 - **Lombok** - Code generation
 
+---
+
+## Fullstack Docker Compose
+
+Docker Compose hien co 3 service:
+
+```txt
+mongodb
+backend
+frontend
+```
+
+Chay fullstack local:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Tren Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+Sau khi chay:
+
+```txt
+Frontend: http://localhost:3000
+Backend:  http://localhost:8017
+MongoDB:  localhost:27017
+```
+
+Frontend Next.js dung bien:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
+```
+
+Luu y: URL nay danh cho browser cua nguoi dung, nen khi chay Docker Compose local phai la `http://localhost:8017`, khong phai `http://backend:8017`. Backend container van ket noi MongoDB bang hostname service `mongodb`.
+
+Test nhanh flow fullstack:
+
+```txt
+1. Login admin: admin@qrfood.local / Admin@123456
+2. Vao Admin Tables de lay hoac regenerate qrToken
+3. Mo http://localhost:3000/qr/{qrToken}
+4. Dat mon
+5. Login staff: staff@qrfood.local / Staff@123456
+6. Vao /staff/orders hoac /staff/kitchen
+7. Kiem tra don moi va SSE realtime
+```
+
