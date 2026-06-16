@@ -33,6 +33,14 @@ export const endpoints = {
     byId: (dishId: string) =>
       `/api/dishes/${encodeURIComponent(dishId)}`,
   },
+  discounts: {
+    list: "/api/discounts",
+    create: "/api/discounts",
+    byId: (discountId: string) =>
+      `/api/discounts/${encodeURIComponent(discountId)}`,
+    byCode: (code: string) =>
+      `/api/discounts/code/${encodeURIComponent(code)}`,
+  },
   orders: {
     publicQr: "/api/orders/public/qr",
     manage: "/api/orders/manage",
