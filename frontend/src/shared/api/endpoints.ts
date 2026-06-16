@@ -4,6 +4,10 @@ export const endpoints = {
     refresh: "/api/auth/refresh",
   },
   tables: {
+    list: "/api/tables",
+    create: "/api/tables",
+    byId: (tableId: string) =>
+      `/api/tables/${encodeURIComponent(tableId)}`,
     byQrToken: (qrToken: string) =>
       `/api/tables/qr/${encodeURIComponent(qrToken)}`,
     regenerateQrToken: (tableId: string) =>

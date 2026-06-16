@@ -1,17 +1,13 @@
-import { endpoints } from "@/shared/api/endpoints";
+import { AdminTablesPage as AdminTablesFeature } from "@/features/admin/tables/components/admin-tables-page";
 import { AppShell } from "@/shared/ui/app-shell";
-import { EmptyState } from "@/shared/ui/empty-state";
 
 export default function AdminTablesPage() {
   return (
     <AppShell
-      title="Admin tables"
-      description="Placeholder cho quan ly ban va QR token."
+      title="Quan ly ban"
+      description="Tao ban, cap nhat thong tin ban va quan ly QR token."
     >
-      <EmptyState
-        title="Quan ly ban chua implement"
-        description={`Task sau se dung CRUD /api/tables va ${endpoints.tables.regenerateQrToken("{tableId}")}.`}
-      />
+      <AdminTablesFeature />
     </AppShell>
   );
 }
