@@ -9,6 +9,9 @@ import java.util.List;
 public class OrderResponse {
     private String id;
     private String tableId;
+    private String customerSessionId;
+    private String customerName;
+    private String customerPhone;
     private List<OrderItemResponse> items;
     private Double totalPrice;
     private Double finalPrice;

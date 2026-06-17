@@ -1,1 +1,4 @@
 SKILL.md
+.env
+.env.*
+!.env.example

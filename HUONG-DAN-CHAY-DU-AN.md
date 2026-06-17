@@ -107,9 +107,33 @@ mvn clean install -DskipTests
 
 ---
 
-## Tạo Tài Khoản ADMIN Đầu Tiên
+## Tạo Tài Khoản & Dữ Liệu Mẫu (Dev Seed Data)
 
-**⚠️ QUAN TRỌNG:** Trước khi sử dụng hệ thống, bạn cần tạo tài khoản ADMIN đầu tiên trực tiếp trong MongoDB.
+Khi bạn khởi chạy backend ở chế độ phát triển, hệ thống sẽ **tự động sinh ra dữ liệu mẫu** để hỗ trợ kiểm thử nhanh nếu thỏa cả hai điều kiện:
+
+* `SPRING_PROFILES_ACTIVE=dev`
+* `APP_SEED_ENABLED=true`
+
+Seeder là idempotent, không tạo trùng dữ liệu khi restart backend.
+
+* **Tài khoản ADMIN mẫu:**
+  * **Email:** `admin@qrfood.local`
+  * **Mật khẩu:** `Admin@123456`
+* **Tài khoản STAFF mẫu:**
+  * **Email:** `staff@qrfood.local`
+  * **Mật khẩu:** `Staff@123456`
+* **Dữ liệu mẫu khác:** Tự động sinh ra 4 bàn ăn (Bàn 1, Bàn 2, Bàn 3, Bàn VIP 1) đã có sẵn `qrToken` ngẫu nhiên bảo mật, danh mục món ăn (Khai vị, Món chính, Đồ uống, Tráng miệng, Combo), các món ăn mẫu tương ứng và 2 mã giảm giá mẫu (`WELCOME10` và `LUNCH20`).
+* **Cách tắt dữ liệu mẫu:** Đặt `APP_SEED_ENABLED=false` trong file `.env` hoặc biến môi trường runtime.
+* **Cách lấy `qrToken` bàn mẫu:** Xem log dev khi backend seed bàn mới, hoặc xem collection `tables` trong MongoDB. API `GET /api/tables` hiện chỉ trả thông tin bàn public và không trả `qrToken`.
+* **Cách test frontend:** Mở frontend tại route `/qr/{qrToken}` với token lấy từ log dev/MongoDB.
+
+Production không được dùng tài khoản mẫu và không chạy seed. Vì seeder có `@Profile("dev")`, profile production sẽ không chạy seeder; khi deploy vẫn nên đặt `APP_SEED_ENABLED=false`.
+
+---
+
+## Tạo Tài Khoản ADMIN Thủ Công (Dành cho Production hoặc khi tắt Seeder)
+
+**⚠️ QUAN TRỌNG:** Nếu không sử dụng tính năng tự động tạo dữ liệu mẫu ở trên (ví dụ chạy trên môi trường production), bạn cần tạo tài khoản ADMIN đầu tiên trực tiếp trong MongoDB.
 
 ### Cách 1: Sử dụng MongoDB Compass hoặc Atlas
 
@@ -1288,6 +1312,75 @@ Các trạng thái order có thể sử dụng khi cập nhật:
 
 ---
 
+## Chạy Backend + MongoDB bằng Docker Compose
+
+Docker Compose dùng cho môi trường development, chạy backend Spring Boot cùng MongoDB local trong container.
+
+### Yêu cầu
+
+- Docker Desktop hoặc Docker Engine có hỗ trợ Docker Compose.
+- Không commit file `.env` thật lên git.
+
+### Bước 1: Tạo file env local từ mẫu
+
+```bash
+cp .env.example .env
+```
+
+Trên Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+File `.env.example` chỉ chứa giá trị mẫu. Khi dùng production, phải thay `JWT_SECRET`, `MONGODB_URI`, `CORS_ALLOWED_ORIGINS` và frontend API URL bằng giá trị thật của môi trường deploy.
+
+### Bước 2: Chạy backend và MongoDB
+
+```bash
+docker compose up --build
+```
+
+Backend chạy tại:
+
+```txt
+http://localhost:8017
+```
+
+MongoDB được expose cho local dev tại:
+
+```txt
+localhost:27017
+```
+
+Trong Docker Compose, backend kết nối MongoDB bằng service hostname:
+
+```txt
+mongodb://mongodb:27017/rms
+```
+
+Không dùng `localhost` cho MongoDB URI bên trong container backend.
+
+### Dừng Docker Compose
+
+```bash
+docker compose down
+```
+
+Dừng và xóa volume MongoDB nếu muốn reset database:
+
+```bash
+docker compose down -v
+```
+
+### Kiểm tra cấu hình Compose
+
+```bash
+docker compose config
+```
+
+---
+
 ## Xử Lý Lỗi Thường Gặp
 
 ### 1. Port đã được sử dụng
@@ -1353,4 +1446,59 @@ java -jar backend/target/rms-0.0.1-SNAPSHOT.jar
 - **Spring Data MongoDB** - Database
 - **JWT** - Token authentication
 - **Lombok** - Code generation
+
+---
+
+## Fullstack Docker Compose
+
+Docker Compose hien co 3 service:
+
+```txt
+mongodb
+backend
+frontend
+```
+
+Chay fullstack local:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Tren Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+Sau khi chay:
+
+```txt
+Frontend: http://localhost:3000
+Backend:  http://localhost:8017
+MongoDB:  localhost:27017
+```
+
+Frontend Next.js dung bien:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
+SERVER_API_BASE_URL=http://backend:8017
+```
+
+Luu y: `NEXT_PUBLIC_API_BASE_URL` danh cho browser cua nguoi dung, nen khi chay Docker Compose local phai la `http://localhost:8017`, khong phai `http://backend:8017`. `SERVER_API_BASE_URL` danh cho Next.js server-side fetch ben trong container frontend, nen dung `http://backend:8017`. Backend container van ket noi MongoDB bang hostname service `mongodb`.
+
+Test nhanh flow fullstack:
+
+```txt
+1. Login admin: admin@qrfood.local / Admin@123456
+2. Vao Admin Tables de lay hoac regenerate qrToken
+3. Mo http://localhost:3000/qr/{qrToken}
+4. Dat mon
+5. Login staff: staff@qrfood.local / Staff@123456
+6. Vao /staff/orders hoac /staff/kitchen
+7. Kiem tra don moi va SSE realtime
+```
 

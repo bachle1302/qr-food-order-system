@@ -20,6 +20,7 @@ public class UserResponse {
     private String displayName;
     private String avatar;
     private Role role;
+    private Boolean isActive;
     private LocalDateTime createdAt;
     
     public static UserResponse fromEntity(User user) {
@@ -29,6 +30,7 @@ public class UserResponse {
                 .displayName(user.getDisplayName())
                 .avatar(user.getAvatar())
                 .role(user.getRole())
+                .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

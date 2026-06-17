@@ -1,17 +1,22 @@
 package com.rms.controller;
 
 import com.rms.dto.request.OrderRequest;
+import com.rms.dto.request.UpdateOrderStatusRequest;
 import com.rms.dto.response.DailySummaryResponse;
 import com.rms.dto.response.OrderResponse;
 import com.rms.facade.OrderFacade;
+import com.rms.service.OrderEventService;
 import com.rms.service.OrderService;
+import jakarta.validation.Valid;
 
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -19,6 +24,7 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderEventService orderEventService;
     private final OrderFacade orderFacade; // Using Facade Pattern
 
     @PostMapping
@@ -37,6 +43,13 @@ public class OrderController {
     @PostMapping("/public/qr")
     public OrderResponse createPublicByQrToken(@RequestBody OrderRequest req) {
         return orderFacade.createOrderWithQrToken(req);
+    }
+
+    @GetMapping("/public/session/{customerSessionId}")
+    public List<OrderResponse> getPublicOrdersByCustomerSession(
+            @PathVariable String customerSessionId,
+            @RequestParam String qrToken) {
+        return orderService.getPublicOrdersByCustomerSession(customerSessionId, qrToken);
     }
     
     /**
@@ -59,6 +72,30 @@ public class OrderController {
         return orderFacade.getOrderWithPayment(id);
     }
 
+    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeOrderEvents() {
+        return orderEventService.subscribe();
+    }
+
+    @GetMapping("/manage")
+    public List<OrderResponse> getManageOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String tableId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return orderService.getManageOrders(status, tableId, fromDate, toDate);
+    }
+
+    @GetMapping("/manage/new")
+    public List<OrderResponse> getNewOrdersForManagement() {
+        return orderService.getNewOrdersForManagement();
+    }
+
+    @GetMapping("/manage/kitchen")
+    public List<OrderResponse> getKitchenOrders() {
+        return orderService.getKitchenOrders();
+    }
+
     @GetMapping("/{id}")
     public OrderResponse getById(@PathVariable String id) {
         return orderService.getById(id);
@@ -76,9 +113,10 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/status")
-    public OrderResponse updateStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
-        String status = body.get("status");
-        return orderService.updateStatus(id, status);
+    public OrderResponse updateStatus(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateOrderStatusRequest request) {
+        return orderService.updateStatus(id, request.getStatus());
     }
 
     @DeleteMapping("/{id}")

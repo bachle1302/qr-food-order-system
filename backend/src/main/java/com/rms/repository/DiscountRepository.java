@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface DiscountRepository extends MongoRepository<Discount, String> {
     Optional<Discount> findByCode(String code);
+    boolean existsByCode(String code);
 }

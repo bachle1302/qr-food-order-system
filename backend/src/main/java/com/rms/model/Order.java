@@ -17,11 +17,15 @@ public class Order {
     private String id;
 
     private String tableId;
+    private String customerId;
+    private String customerSessionId;
+    private String customerName;
+    private String customerPhone;
     private List<OrderItem> items;
 
     private Double totalPrice;
     private Double finalPrice;
     private String note;
     private LocalDateTime createdAt;
-    private String status; // NEW, PREPARING, SERVED, PAID, CANCELLED
+    private String status; // Stored as String for backward compatibility.
 }

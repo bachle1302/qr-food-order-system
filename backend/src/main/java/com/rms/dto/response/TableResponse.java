@@ -7,5 +7,6 @@ public class TableResponse {
     private String id;
     private String name;
     private int seats;
+    private String qrToken;
     private boolean available;
 }

@@ -7,18 +7,29 @@ import com.rms.dto.response.OrderItemResponse;
 import com.rms.dto.response.OrderResponse;
 import com.rms.exception.BadRequestException;
 import com.rms.exception.ResourceNotFoundException;
+import com.rms.model.Customer;
+import com.rms.model.CustomerSession;
 import com.rms.model.Dish;
 import com.rms.model.Order;
 import com.rms.model.OrderItem;
+import com.rms.model.OrderStatus;
 import com.rms.model.Table;
+import com.rms.repository.CustomerRepository;
+import com.rms.repository.CustomerSessionRepository;
 import com.rms.repository.DishRepository;
 import com.rms.repository.OrderRepository;
 import com.rms.repository.TableRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -28,13 +39,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final DishRepository dishRepository;
     private final TableRepository tableRepository;
+    private final CustomerRepository customerRepository;
+    private final CustomerSessionRepository customerSessionRepository;
+    private final MongoTemplate mongoTemplate;
+    private final OrderEventService orderEventService;
 
     @Override
     public OrderResponse create(OrderRequest request) {
         if (request == null) {
             throw new BadRequestException("Order request is required");
         }
-        return createForTableId(request.getTableId(), request);
+        Table table = resolveTableById(request.getTableId());
+        return createForTable(table, request);
     }
 
     @Override
@@ -49,17 +65,16 @@ public class OrderServiceImpl implements OrderService {
         Table table = tableRepository.findByQrToken(request.getQrToken())
                 .orElseThrow(() -> new BadRequestException("Invalid QR token"));
 
-        return createForTableId(table.getId(), request);
+        return createForTable(table, request);
     }
 
-    private OrderResponse createForTableId(String tableId, OrderRequest request) {
-        if (tableId == null || tableId.isBlank() || !tableRepository.existsById(tableId)) {
-            throw new BadRequestException("Table not found");
-        }
-
+    private OrderResponse createForTable(Table table, OrderRequest request) {
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new BadRequestException("Order must contain at least one item");
         }
+
+        LocalDateTime now = LocalDateTime.now();
+        CustomerSessionContext customerSessionContext = resolveCustomerSession(request, table, now);
 
         // build items, calculate totals
         double total = 0.0;
@@ -70,17 +85,56 @@ public class OrderServiceImpl implements OrderService {
         }
 
         Order order = Order.builder()
-                .tableId(tableId)
+                .tableId(table.getId())
+                .customerId(customerSessionContext.customerId())
+                .customerSessionId(customerSessionContext.customerSessionId())
+                .customerName(customerSessionContext.customerName())
+                .customerPhone(customerSessionContext.customerPhone())
                 .items(items)
                 .totalPrice(total)
                 .finalPrice(total)
                 .note(request.getNote())
-                .createdAt(LocalDateTime.now())
-                .status("NEW")
+                .createdAt(now)
+                .status(OrderStatus.NEW.name())
                 .build();
 
         orderRepository.save(order);
-        return toResponse(order);
+        OrderResponse response = toResponse(order);
+        orderEventService.publishOrderCreated(response);
+        return response;
+    }
+
+    private Table resolveTableById(String tableId) {
+        if (tableId == null || tableId.isBlank()) {
+            throw new BadRequestException("Table not found");
+        }
+        return tableRepository.findById(tableId)
+                .orElseThrow(() -> new BadRequestException("Table not found"));
+    }
+
+    private CustomerSessionContext resolveCustomerSession(OrderRequest request, Table table, LocalDateTime now) {
+        if (request.getCustomerSessionId() == null || request.getCustomerSessionId().isBlank()) {
+            return CustomerSessionContext.empty();
+        }
+
+        CustomerSession session = customerSessionRepository.findByIdAndActiveTrue(request.getCustomerSessionId().trim())
+                .orElseThrow(() -> new BadRequestException("Customer session not found or inactive"));
+
+        if (!table.getId().equals(session.getTableId())) {
+            throw new BadRequestException("Customer session does not match table");
+        }
+
+        Customer customer = customerRepository.findById(session.getCustomerId())
+                .orElseThrow(() -> new BadRequestException("Customer not found for session"));
+
+        session.setLastActiveAt(now);
+        customerSessionRepository.save(session);
+
+        return new CustomerSessionContext(
+                customer.getId(),
+                session.getId(),
+                customer.getName(),
+                customer.getPhone());
     }
 
     private OrderItem toOrderItem(OrderItemRequest r) {
@@ -143,9 +197,51 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateStatus(String id, String status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        order.setStatus(status);
+        OrderStatus currentStatus = parseExistingStatus(order.getStatus());
+        OrderStatus nextStatus = parseRequestedStatus(status);
+
+        if (!currentStatus.canTransitionTo(nextStatus)) {
+            throw new BadRequestException(
+                    "Cannot transition order status from " + currentStatus.name() + " to " + nextStatus.name());
+        }
+
+        order.setStatus(nextStatus.name());
         orderRepository.save(order);
-        return toResponse(order);
+        OrderResponse response = toResponse(order);
+        orderEventService.publishOrderStatusChanged(response);
+        return response;
+    }
+
+    @Override
+    public OrderResponse markPaid(String id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        OrderStatus currentStatus = parseExistingStatus(order.getStatus());
+
+        if (currentStatus.isTerminal()) {
+            throw new BadRequestException("Cannot mark " + currentStatus.name() + " order as PAID");
+        }
+
+        if (currentStatus == OrderStatus.PAID) {
+            return toResponse(order);
+        }
+
+        // Internal payment workflow may mark an order as PAID after payment succeeds.
+        order.setStatus(OrderStatus.PAID.name());
+        orderRepository.save(order);
+        OrderResponse response = toResponse(order);
+        orderEventService.publishOrderStatusChanged(response);
+        return response;
+    }
+
+    private OrderStatus parseExistingStatus(String status) {
+        return OrderStatus.from(status)
+                .orElseThrow(() -> new BadRequestException("Current order status is invalid: " + status));
+    }
+
+    private OrderStatus parseRequestedStatus(String status) {
+        return OrderStatus.from(status)
+                .orElseThrow(() -> new BadRequestException("Invalid order status: " + status));
     }
 
     @Override
@@ -162,6 +258,94 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderResponse> getByTableId(String tableId) {
         return orderRepository.findByTableId(tableId).stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<OrderResponse> getPublicOrdersByCustomerSession(String customerSessionId, String qrToken) {
+        if (customerSessionId == null || customerSessionId.isBlank()) {
+            throw new BadRequestException("Customer session ID is required");
+        }
+        if (qrToken == null || qrToken.isBlank()) {
+            throw new BadRequestException("QR token is required");
+        }
+
+        String normalizedSessionId = customerSessionId.trim();
+        String normalizedQrToken = qrToken.trim();
+
+        CustomerSession session = customerSessionRepository.findByIdAndActiveTrue(normalizedSessionId)
+                .orElseThrow(() -> new BadRequestException("Customer session not found or inactive"));
+
+        if (!normalizedQrToken.equals(session.getQrToken())) {
+            throw new BadRequestException("Customer session does not match QR token");
+        }
+
+        Table table = tableRepository.findByQrToken(normalizedQrToken)
+                .orElseThrow(() -> new BadRequestException("Invalid QR token"));
+
+        if (!table.getId().equals(session.getTableId())) {
+            throw new BadRequestException("Customer session does not match table");
+        }
+
+        return orderRepository.findByCustomerSessionIdOrderByCreatedAtDesc(normalizedSessionId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<OrderResponse> getManageOrders(String status, String tableId, LocalDate fromDate, LocalDate toDate) {
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        if (status != null && !status.isBlank()) {
+            criteria.add(Criteria.where("status").is(parseRequestedStatus(status).name()));
+        }
+
+        if (tableId != null && !tableId.isBlank()) {
+            criteria.add(Criteria.where("tableId").is(tableId));
+        }
+
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new BadRequestException("fromDate must be before or equal to toDate");
+        }
+
+        if (fromDate != null || toDate != null) {
+            Criteria createdAtCriteria = Criteria.where("createdAt");
+            if (fromDate != null) {
+                createdAtCriteria = createdAtCriteria.gte(fromDate.atStartOfDay());
+            }
+            if (toDate != null) {
+                createdAtCriteria = createdAtCriteria.lt(toDate.plusDays(1).atStartOfDay());
+            }
+            criteria.add(createdAtCriteria);
+        }
+
+        if (!criteria.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteria.toArray(Criteria[]::new)));
+        }
+
+        query.with(Sort.by(Sort.Direction.DESC, "createdAt"));
+        return mongoTemplate.find(query, Order.class).stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<OrderResponse> getNewOrdersForManagement() {
+        return orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.NEW.name())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<OrderResponse> getKitchenOrders() {
+        List<String> kitchenStatuses = Arrays.asList(
+                OrderStatus.CONFIRMED.name(),
+                OrderStatus.PREPARING.name(),
+                OrderStatus.READY.name());
+        return orderRepository.findByStatusInOrderByCreatedAtAsc(kitchenStatuses)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
@@ -236,6 +420,9 @@ public class OrderServiceImpl implements OrderService {
         OrderResponse r = new OrderResponse();
         r.setId(o.getId());
         r.setTableId(o.getTableId());
+        r.setCustomerSessionId(o.getCustomerSessionId());
+        r.setCustomerName(o.getCustomerName());
+        r.setCustomerPhone(o.getCustomerPhone());
         r.setTotalPrice(o.getTotalPrice());
         r.setFinalPrice(o.getFinalPrice());
         r.setNote(o.getNote());
@@ -252,5 +439,15 @@ public class OrderServiceImpl implements OrderService {
         }).toList();
         r.setItems(items);
         return r;
+    }
+
+    private record CustomerSessionContext(
+            String customerId,
+            String customerSessionId,
+            String customerName,
+            String customerPhone) {
+        private static CustomerSessionContext empty() {
+            return new CustomerSessionContext(null, null, null, null);
+        }
     }
 }

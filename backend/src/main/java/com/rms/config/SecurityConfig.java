@@ -39,12 +39,21 @@ public class SecurityConfig {
                         // Public endpoints - không cần authentication
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/refresh").permitAll()
-                        .requestMatchers("/api/orders/public").permitAll()
-                        .requestMatchers("/api/orders/public/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders/public").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders/public/qr").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/orders/public/session/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/customer-sessions/check-in").permitAll()
                         
                         // Cho phép tạo order (POST only)
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders").permitAll()
+
+                        // Realtime order events cho STAFF/ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/orders/events").hasAnyAuthority("ADMIN", "STAFF")
+
+                        // Quan ly order cho STAFF/ADMIN
+                        .requestMatchers("/api/orders/manage").hasAnyAuthority("ADMIN", "STAFF")
+                        .requestMatchers("/api/orders/manage/**").hasAnyAuthority("ADMIN", "STAFF")
                         
                         // Cho phép xem thông tin món ăn (GET only)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/dishes/**").permitAll()

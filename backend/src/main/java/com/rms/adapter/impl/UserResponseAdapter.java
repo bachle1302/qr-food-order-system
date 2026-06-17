@@ -23,6 +23,7 @@ public class UserResponseAdapter implements EntityDtoAdapter<User, UserResponse>
                 .displayName(entity.getDisplayName())
                 .avatar(entity.getAvatar())
                 .role(entity.getRole())
+                .isActive(entity.getIsActive())
                 .createdAt(entity.getCreatedAt())
                 .build();
     }
@@ -39,6 +40,7 @@ public class UserResponseAdapter implements EntityDtoAdapter<User, UserResponse>
                 .displayName(dto.getDisplayName())
                 .avatar(dto.getAvatar())
                 .role(dto.getRole())
+                .isActive(dto.getIsActive())
                 .createdAt(dto.getCreatedAt())
                 .build();
     }
