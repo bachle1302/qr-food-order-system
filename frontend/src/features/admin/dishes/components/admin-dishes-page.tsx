@@ -277,7 +277,7 @@ export function AdminDishesPage() {
         />
       ) : null}
 
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="border-y border-gray-200 py-4 dark:border-slate-800">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
@@ -406,7 +406,7 @@ export function AdminDishesPage() {
         </form>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="border-y border-gray-200 py-4 dark:border-slate-800">
         <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-1 text-sm text-foreground">
             Lọc theo danh mục
@@ -441,7 +441,7 @@ export function AdminDishesPage() {
       </section>
 
       {notice ? (
-        <div className="rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
+        <div className="border-l-4 border-primary py-2 pl-3 text-sm text-foreground">
           {notice}
         </div>
       ) : null}
@@ -464,7 +464,7 @@ export function AdminDishesPage() {
 
           return (
             <article
-              className="overflow-hidden rounded-lg border border-border bg-card"
+              className="overflow-hidden border-y border-gray-200 dark:border-slate-800"
               key={dish.id}
             >
               <div className="grid gap-0 sm:grid-cols-[160px_minmax(0,1fr)]">

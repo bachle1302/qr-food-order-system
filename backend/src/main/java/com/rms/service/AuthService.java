@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -35,9 +36,13 @@ public class AuthService {
             throw new BadRequestException("Email already exists");
         }
         
-        // Chỉ cho phép tạo tài khoản STAFF, không thể tự tạo ADMIN
-        if (request.getRole() == Role.ADMIN) {
-            throw new BadRequestException("Cannot create ADMIN account via registration");
+        // Chỉ cho phép tạo tài khoản ADMIN nếu người gọi là ADMIN
+        Authentication callerAuth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isCallerAdmin = callerAuth != null && callerAuth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN"));
+        
+        if (request.getRole() == Role.ADMIN && !isCallerAdmin) {
+            throw new BadRequestException("Only ADMIN accounts can register new ADMIN users");
         }
         
         User user = User.builder()
@@ -67,6 +72,10 @@ public class AuthService {
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new BadRequestException("User not found"));
         
+        if (user.getIsActive() != null && !user.getIsActive()) {
+            throw new BadRequestException("User account is inactive");
+        }
+        
         String accessToken = tokenProvider.generateAccessToken(authentication);
         String refreshToken = tokenProvider.generateRefreshToken(userPrincipal.getId());
         
@@ -82,6 +91,10 @@ public class AuthService {
         String userId = tokenProvider.getUserIdFromToken(refreshToken);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("User not found"));
+        
+        if (user.getIsActive() != null && !user.getIsActive()) {
+            throw new BadRequestException("User account is inactive");
+        }
         
         String newAccessToken = tokenProvider.generateAccessToken(userId);
         String newRefreshToken = tokenProvider.generateRefreshToken(userId);

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  ChevronLeft,
   ClipboardList,
   Clock3,
   Loader2,
@@ -16,12 +17,13 @@ import {
   Trash2,
   Utensils,
   UserRound,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
+import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { getCustomerSessionOrders } from "../api/customer-orders.client";
 import { createQrOrder } from "../api/public-order.client";
+import { CustomerOrdersSection as CustomerOrdersSectionView } from "./customer-orders-section";
 import { DishDetailSheet } from "./dish-detail-sheet";
 import { GuestCheckInForm } from "./guest-check-in-form";
 import type {
@@ -572,31 +574,23 @@ export function CustomerOrderClient({
   }
 
   return (
-    <div className="min-h-screen bg-muted/40 text-foreground">
-      <div className="mx-auto min-h-screen max-w-[520px] bg-background shadow-sm">
+    <div className="min-h-screen bg-gray-50 text-foreground dark:bg-slate-950">
+      <div className="mx-auto min-h-screen max-w-[520px] overflow-hidden bg-transparent">
         <div
-          className={`fixed inset-x-0 top-0 z-30 mx-auto max-w-[520px] border-b border-border bg-background/95 shadow-sm backdrop-blur transition-transform duration-300 ${
+          className={`fixed inset-x-0 top-0 z-30 mx-auto max-w-[520px] border-b border-gray-200 bg-gray-50/95 backdrop-blur transition-transform duration-300 dark:border-slate-800 dark:bg-slate-950/95 ${
             isHeaderCompact && activeTab === "menu"
               ? "-translate-y-[calc(100%-0.75rem)]"
               : "translate-y-0"
           }`}
         >
-          <MobileFoodHeader
+          <CustomerSampleHeader
             customerName={customerSession.customerName}
-            isCompact={false}
+            onViewOrders={() => setActiveTab("orders")}
             onSwitchGuest={handleSwitchGuest}
+            orderCount={customerOrders.length}
             tableName={table.name}
           />
           <div className="space-y-3 px-4 pb-3">
-            <CustomerTabs
-              activeTab={activeTab}
-              orderCount={customerOrders.length}
-              onChange={(tab) => {
-                setActiveTab(tab);
-                setIsHeaderCompact(false);
-              }}
-            />
-
             {activeTab === "menu" ? (
               <>
                 <SearchBox
@@ -619,8 +613,10 @@ export function CustomerOrderClient({
         </div>
 
         <main
-          className={`space-y-4 px-4 pb-28 ${
-            activeTab === "menu" ? "pt-[15.5rem]" : "pt-[8.5rem]"
+          className={`space-y-5 bg-transparent px-4 pb-28 ${
+            activeTab === "menu"
+              ? "pt-[calc(env(safe-area-inset-top)+16.5rem)]"
+              : "pt-[calc(env(safe-area-inset-top)+10rem)]"
           }`}
         >
           {successOrder ? (
@@ -679,7 +675,7 @@ export function CustomerOrderClient({
                           title={section.name}
                         />
                         {section.dishes.length === 0 ? (
-                          <div className="rounded-lg border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
+                          <div className="border-y border-dashed border-gray-200 py-4 text-sm text-muted-foreground dark:border-slate-800">
                             Danh mục này chưa có món.
                           </div>
                         ) : (
@@ -701,13 +697,24 @@ export function CustomerOrderClient({
               )}
             </>
           ) : (
-            <CustomerOrdersSection
-              dishes={dishes}
-              error={ordersError}
-              isLoading={isLoadingOrders}
-              onRefresh={() => void loadCustomerOrders(customerSession)}
-              orders={customerOrders}
-            />
+            <section className="space-y-3">
+              <Button
+                onClick={() => setActiveTab("menu")}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <ChevronLeft />
+                Quay lại Menu
+              </Button>
+              <CustomerOrdersSectionView
+                dishes={dishes}
+                error={ordersError}
+                isLoading={isLoadingOrders}
+                onRefresh={() => void loadCustomerOrders(customerSession)}
+                orders={customerOrders}
+              />
+            </section>
           )}
         </main>
 
@@ -755,29 +762,40 @@ export function CustomerOrderClient({
   );
 }
 
-type MobileFoodHeaderProps = {
+type CustomerSampleHeaderProps = {
   customerName: string;
-  isCompact: boolean;
+  orderCount: number;
   tableName: string;
   onSwitchGuest: () => void;
+  onViewOrders: () => void;
 };
 
-function MobileFoodHeader({
+function CustomerSampleHeader({
   customerName,
-  isCompact,
+  orderCount,
   tableName,
   onSwitchGuest,
-}: MobileFoodHeaderProps) {
+  onViewOrders,
+}: CustomerSampleHeaderProps) {
   return (
-    <header
-      className={`overflow-hidden px-4 transition-all duration-300 ${
-        isCompact ? "max-h-0 opacity-0" : "max-h-36 pb-3 pt-3 opacity-100"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
+    <header className="px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+      <div className="mb-2 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-gray-800 dark:text-slate-100">
+                QR Food
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                Bàn số:{" "}
+                <span className="font-semibold text-orange-600 dark:text-orange-300">
+                  {tableName || "Bàn của bạn"}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="hidden">
+            <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/25">
               <Store className="size-5" />
             </div>
             <div className="min-w-0">
@@ -790,15 +808,26 @@ function MobileFoodHeader({
             </div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               Đang phục vụ tại bàn
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-transparent px-2.5 py-1 text-xs text-muted-foreground dark:border-slate-700">
               <UserRound className="size-3" />
               {customerName}
             </span>
           </div>
         </div>
+        {orderCount > 0 ? (
+          <button
+            className="flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1.5 text-sm font-medium text-orange-600 dark:bg-orange-500/15 dark:text-orange-300"
+            onClick={onViewOrders}
+            type="button"
+          >
+            <ReceiptText className="size-4" />
+            Đơn của bạn
+          </button>
+        ) : null}
+        <ThemeToggle />
         <Button onClick={onSwitchGuest} size="sm" type="button" variant="ghost">
           Đổi khách
         </Button>
@@ -813,14 +842,16 @@ type CustomerTabsProps = {
   onChange: (tab: ActiveTab) => void;
 };
 
+// Kept temporarily for future compact tab UX, but not rendered in the current customer layout.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CustomerTabs({ activeTab, orderCount, onChange }: CustomerTabsProps) {
   return (
-    <div className="grid grid-cols-2 rounded-lg bg-muted p-1">
+    <div className="grid grid-cols-2 rounded-full border border-gray-200 bg-transparent p-1 dark:border-slate-800">
       <button
-        className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+        className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
           activeTab === "menu"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground"
+            ? "bg-orange-500 text-white shadow-md"
+            : "text-gray-600 hover:bg-gray-200 dark:text-slate-400 dark:hover:bg-slate-800"
         }`}
         onClick={() => onChange("menu")}
         type="button"
@@ -828,10 +859,10 @@ function CustomerTabs({ activeTab, orderCount, onChange }: CustomerTabsProps) {
         Menu
       </button>
       <button
-        className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+        className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
           activeTab === "orders"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground"
+            ? "bg-orange-500 text-white shadow-md"
+            : "text-gray-600 hover:bg-gray-200 dark:text-slate-400 dark:hover:bg-slate-800"
         }`}
         onClick={() => onChange("orders")}
         type="button"
@@ -852,7 +883,7 @@ function SearchBox({ searchQuery, onChange }: SearchBoxProps) {
     <label className="relative block">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <input
-        className="h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-11 w-full rounded-full border border-gray-200 bg-transparent pl-9 pr-3 text-sm text-gray-800 outline-none placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
         onChange={(event) => onChange(event.target.value)}
         placeholder="Tìm món ăn..."
         value={searchQuery}
@@ -923,10 +954,10 @@ function CategoryPill({
 }: CategoryPillProps) {
   return (
     <button
-      className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition ${
+      className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition ${
         isActive
-          ? "border-primary bg-primary text-primary-foreground shadow-sm"
-          : "border-border bg-card text-foreground"
+          ? "border-orange-500 bg-orange-500 text-white shadow-md"
+          : "border-gray-200 bg-transparent text-gray-600 dark:border-slate-800 dark:text-slate-400"
       }`}
       onClick={onClick}
       ref={refCallback}
@@ -940,9 +971,9 @@ function CategoryPill({
 
 function NoticeCard() {
   return (
-    <section className="rounded-lg border border-border bg-card p-3">
+    <section className="border-l-4 border-orange-500 py-2 pl-3">
       <div className="flex items-center gap-3">
-        <div className="grid size-9 place-items-center rounded-lg bg-muted text-primary">
+        <div className="grid size-9 place-items-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-300">
           <Clock3 className="size-4" />
         </div>
         <div className="min-w-0">
@@ -960,9 +991,9 @@ function NoticeCard() {
 
 function SuccessNotice({ onViewOrders }: { onViewOrders: () => void }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="border-l-4 border-emerald-500 py-3 pl-3">
       <div className="flex items-start gap-3">
-        <div className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground">
+        <div className="grid size-10 place-items-center rounded-lg bg-emerald-500 text-white shadow-md shadow-emerald-500/20">
           <CheckCircle2 className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -992,7 +1023,7 @@ function SectionTitle({ count, title }: { count: number; title: string }) {
   return (
     <div className="flex items-end justify-between gap-3">
       <div className="min-w-0">
-        <h2 className="truncate text-lg font-semibold text-foreground">
+        <h2 className="truncate border-l-4 border-orange-500 pl-2 text-lg font-bold text-foreground">
           {title}
         </h2>
         <p className="text-xs text-muted-foreground">{count} món</p>
@@ -1009,7 +1040,7 @@ function EmptyMenuState({
   title?: string;
 }) {
   return (
-    <section className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+    <section className="border-y border-dashed border-gray-200 py-8 text-center dark:border-slate-800">
       <ClipboardList className="mx-auto size-8 text-muted-foreground" />
       <span className="sr-only">
         {title} {description}
@@ -1043,7 +1074,7 @@ function DishCard({
 
   return (
     <article
-      className={`rounded-lg border border-border bg-card p-3 shadow-sm ${
+      className={`border-b border-gray-200 py-3 transition-transform active:scale-[0.99] dark:border-slate-800 ${
         isAvailable ? "" : "opacity-60"
       }`}
       onClick={() => onOpenDetail(dish)}
@@ -1060,24 +1091,24 @@ function DishCard({
               </h3>
             </div>
             {!isAvailable ? (
-              <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[0.7rem] font-medium text-muted-foreground">
+              <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[0.7rem] font-medium text-gray-500 dark:bg-slate-800 dark:text-slate-400">
                 Hết hàng
               </span>
             ) : null}
           </div>
 
           {dish.description ? (
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
               {dish.description}
             </p>
           ) : null}
 
           <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="font-semibold text-primary">
+            <p className="font-bold text-primary">
               {formatCurrency(dish.price)}
             </p>
             {quantity > 0 ? (
-              <div className="flex items-center rounded-full border border-border bg-background">
+              <div className="flex items-center rounded-full border border-gray-200 bg-transparent text-gray-700 dark:border-slate-700 dark:text-slate-300">
                 <Button
                   disabled={!isAvailable}
                   onClick={(event) => {
@@ -1113,6 +1144,7 @@ function DishCard({
                   event.stopPropagation();
                   onUpdateQuantity(dish.id, 1);
                 }}
+                className="rounded-full bg-orange-500 text-white shadow-sm hover:bg-orange-600"
                 size="icon"
                 type="button"
               >
@@ -1131,7 +1163,7 @@ function DishThumb({ dish }: { dish: Dish }) {
     return (
       <div
         aria-label={dish.name}
-        className="aspect-square rounded-lg bg-muted bg-cover bg-center"
+        className="aspect-square rounded-lg bg-gray-200 bg-cover bg-center dark:bg-slate-800"
         role="img"
         style={{ backgroundImage: `url("${dish.imageUrl}")` }}
       />
@@ -1139,7 +1171,7 @@ function DishThumb({ dish }: { dish: Dish }) {
   }
 
   return (
-    <div className="grid aspect-square place-items-center rounded-lg bg-muted text-primary">
+    <div className="grid aspect-square place-items-center rounded-lg bg-gray-200 text-orange-600 dark:bg-slate-800 dark:text-orange-300">
       <Utensils className="size-7" />
     </div>
   );
@@ -1161,17 +1193,24 @@ function CartStickyBar({
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[520px] border-t border-border bg-background/95 p-3 backdrop-blur">
+    <div className="fixed inset-x-0 bottom-4 z-40 mx-auto max-w-[520px] px-4">
       <Button
-        className="h-12 w-full justify-between rounded-lg px-4"
+        className="h-14 w-full justify-between rounded-2xl bg-gray-800 px-4 text-white shadow-xl hover:bg-gray-900 dark:bg-slate-900 dark:text-slate-100 dark:ring-1 dark:ring-slate-700 dark:hover:bg-slate-800"
         onClick={onOpenCart}
         type="button"
       >
         <span className="inline-flex items-center gap-2">
-          <ShoppingBag />
+          <span className="relative">
+            <ShoppingBag />
+            <span className="absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-primary text-[0.7rem] font-bold text-primary-foreground">
+              {totalItems}
+            </span>
+          </span>
           Giỏ hàng · {totalItems} món
         </span>
-        <span>{formatCurrency(previewTotal)}</span>
+        <span className="rounded-xl bg-orange-500 px-4 py-2 font-semibold text-white">
+          {formatCurrency(previewTotal)}
+        </span>
       </Button>
     </div>
   );
@@ -1205,9 +1244,9 @@ function CustomerCartSheet({
   totalItems,
 }: CustomerCartSheetProps) {
   return (
-    <div className="fixed inset-0 z-50 mx-auto max-w-[520px] bg-background/70 backdrop-blur-sm">
-      <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-hidden rounded-t-lg border border-border bg-card shadow-lg">
-        <div className="flex items-start justify-between gap-3 border-b border-border p-4">
+    <div className="fixed inset-0 z-50 mx-auto flex max-w-[520px] flex-col bg-gray-50 dark:bg-slate-950">
+      <div className="flex min-h-0 flex-1 flex-col bg-transparent">
+        <div className="flex items-start justify-between gap-3 border-b border-gray-200 bg-gray-50/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Giỏ hàng</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -1221,23 +1260,26 @@ function CustomerCartSheet({
             type="button"
             variant="outline"
           >
-            <X />
+            <ChevronLeft />
           </Button>
         </div>
 
-        <div className="max-h-[56vh] overflow-y-auto p-4">
-          <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 pb-32">
+          <div className="space-y-4">
             {cartLines.map((item) => (
               <article
-                className="rounded-lg border border-border bg-background p-3"
+                className="border-b border-gray-200 py-4 dark:border-slate-800"
                 key={item.dishId}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="flex items-start gap-3">
+                  <div className="w-16 shrink-0">
+                    <DishThumb dish={item.dish} />
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-medium text-foreground">
                       {item.dish.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm font-semibold text-primary">
                       {formatCurrency(item.dish.price)}
                     </p>
                   </div>
@@ -1251,8 +1293,8 @@ function CustomerCartSheet({
                   </Button>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center rounded-full border border-border bg-card">
+                <div className="mt-3 flex items-center justify-between gap-3 pl-[4.75rem]">
+                  <div className="flex items-center rounded-lg border border-gray-200 bg-transparent text-gray-700 dark:border-slate-700 dark:text-slate-300">
                     <Button
                       onClick={() =>
                         onUpdateQuantity(item.dishId, item.quantity - 1)
@@ -1283,7 +1325,7 @@ function CustomerCartSheet({
                 </div>
 
                 <textarea
-                  className="mt-3 min-h-16 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-3 min-h-16 w-full rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-800"
                   onChange={(event) =>
                     onUpdateItemNote(item.dishId, event.target.value)
                   }
@@ -1298,7 +1340,7 @@ function CustomerCartSheet({
             Ghi chú đơn hàng
           </label>
           <textarea
-            className="mt-2 min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-2 min-h-20 w-full rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-800"
             onChange={(event) => setOrderNote(event.target.value)}
             placeholder="Ví dụ: ít cay, phục vụ sau 10 phút..."
             value={orderNote}
@@ -1311,7 +1353,7 @@ function CustomerCartSheet({
           ) : null}
         </div>
 
-        <div className="border-t border-border p-4">
+        <div className="fixed inset-x-0 bottom-0 z-10 mx-auto max-w-[520px] border-t border-gray-200 bg-gray-50/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Tạm tính</span>
             <span className="text-xl font-semibold text-foreground">
@@ -1319,7 +1361,7 @@ function CustomerCartSheet({
             </span>
           </div>
           <Button
-            className="mt-4 h-11 w-full rounded-lg"
+            className="mt-4 h-12 w-full rounded-xl bg-orange-500 text-base font-bold text-white shadow-lg hover:bg-orange-600"
             disabled={cartLines.length === 0 || isSubmitting}
             onClick={onSubmit}
             type="button"
@@ -1347,6 +1389,8 @@ type CustomerOrdersSectionProps = {
   orders: OrderResponse[];
 };
 
+// TODO: remove after the customer orders UI is fully split out.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CustomerOrdersSection({
   dishes,
   error,

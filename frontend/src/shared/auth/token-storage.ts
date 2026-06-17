@@ -11,12 +11,22 @@ function getStorage() {
   return window.localStorage;
 }
 
+const ROLE_KEY = "qrfood.userRole";
+
 export function getAccessToken() {
   return getStorage()?.getItem(ACCESS_TOKEN_KEY) ?? null;
 }
 
 export function getRefreshToken() {
   return getStorage()?.getItem(REFRESH_TOKEN_KEY) ?? null;
+}
+
+export function getUserRole() {
+  return getStorage()?.getItem(ROLE_KEY) ?? null;
+}
+
+export function setUserRole(role: string) {
+  getStorage()?.setItem(ROLE_KEY, role);
 }
 
 export function setTokens(tokens: {
@@ -44,4 +54,5 @@ export function clearTokens() {
 
   storage.removeItem(ACCESS_TOKEN_KEY);
   storage.removeItem(REFRESH_TOKEN_KEY);
+  storage.removeItem(ROLE_KEY);
 }

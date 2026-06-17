@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useState } from "react";
+import { getAccessToken, getUserRole } from "@/shared/auth/token-storage";
 import {
-  ChefHat,
   ClipboardList,
   Home,
   LayoutDashboard,
@@ -23,7 +23,6 @@ type ManagementShellProps = {
 
 const navItems = [
   { href: "/staff/orders", label: "Đơn hàng", icon: ClipboardList },
-  { href: "/staff/kitchen", label: "Bếp", icon: ChefHat },
   { href: "/admin", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/admin/tables", label: "Bàn", icon: Table2 },
   { href: "/admin/categories", label: "Danh mục", icon: Tags },
@@ -36,10 +35,6 @@ const pageMeta: Record<string, { title: string; description: string }> = {
   "/staff/orders": {
     title: "Đơn hàng",
     description: "Quản lý đơn hàng, trạng thái và realtime vận hành.",
-  },
-  "/staff/kitchen": {
-    title: "Bếp",
-    description: "Theo dõi các đơn cần chế biến và phục vụ.",
   },
   "/admin": {
     title: "Tổng quan quản trị",
@@ -93,11 +88,52 @@ function isActivePath(pathname: string, href: string) {
 
 export function ManagementShell({ children }: ManagementShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    const userRole = getUserRole();
+    setRole(userRole);
+    setIsChecking(false);
+
+    if (pathname.startsWith("/admin") && userRole !== "ADMIN") {
+      router.push("/staff/orders");
+    }
+  }, [pathname, router]);
+
   const meta = getPageMeta(pathname);
 
+  if (isChecking) {
+    return (
+      <div className="grid h-screen place-items-center bg-gray-50 dark:bg-slate-950 text-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Đang xác thực quyền truy cập...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pathname.startsWith("/admin") && role !== "ADMIN") {
+    return null;
+  }
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.href.startsWith("/admin")) {
+      return role === "ADMIN";
+    }
+    return true;
+  });
+
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex">
-      <aside className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-3 text-card-foreground md:h-screen md:w-16 md:flex-col md:border-b-0 md:border-r md:px-0 md:py-4">
+    <div className="min-h-screen bg-gray-50 text-foreground dark:bg-slate-950 md:flex">
+      <aside className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-gray-50/95 px-3 text-foreground backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 md:h-screen md:w-16 md:flex-col md:border-b-0 md:border-r md:px-0 md:py-4">
         <div className="flex min-w-0 items-center gap-2 md:flex-col">
           <Link
             aria-label="Trang chủ"
@@ -108,16 +144,16 @@ export function ManagementShell({ children }: ManagementShellProps) {
             <Home className="size-4" />
           </Link>
           <nav className="flex min-w-0 items-center gap-1 overflow-x-auto md:mt-5 md:flex-col md:gap-2 md:overflow-visible">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const active = isActivePath(pathname, item.href);
 
               return (
                 <Link
                   aria-label={item.label}
-                  className={`grid size-9 shrink-0 place-items-center rounded-lg border text-muted-foreground transition hover:bg-muted hover:text-foreground ${
+                  className={`grid size-9 shrink-0 place-items-center rounded-lg border text-muted-foreground transition hover:border-slate-300 hover:text-foreground dark:hover:border-slate-700 ${
                     active
-                      ? "border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                      ? "border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
                       : "border-transparent"
                   }`}
                   href={item.href}
@@ -132,20 +168,22 @@ export function ManagementShell({ children }: ManagementShellProps) {
         </div>
         <div className="flex shrink-0 items-center gap-1 md:flex-col">
           <ThemeToggle />
-          <Link
-            aria-label="Cài đặt"
-            className="grid size-9 place-items-center rounded-lg border border-transparent text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            href="/admin"
-            title="Cài đặt"
-          >
-            <Settings className="size-4" />
-          </Link>
+          {role === "ADMIN" && (
+            <Link
+              aria-label="Cài đặt"
+              className="grid size-9 place-items-center rounded-lg border border-transparent text-muted-foreground transition hover:border-slate-300 hover:text-foreground dark:hover:border-slate-700"
+              href="/admin"
+              title="Cài đặt"
+            >
+              <Settings className="size-4" />
+            </Link>
+          )}
         </div>
       </aside>
 
       <main className="min-w-0 flex-1 p-3 md:p-5">
         <div className="mx-auto max-w-[1500px] space-y-4">
-          <header className="rounded-lg border border-border bg-card p-4 text-card-foreground md:p-5">
+          <header className="border-b border-gray-200 pb-4 text-foreground dark:border-slate-800 md:pb-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
@@ -160,17 +198,19 @@ export function ManagementShell({ children }: ManagementShellProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                  className="rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-sm text-foreground transition hover:border-primary hover:text-primary dark:border-slate-800"
                   href="/staff/orders"
                 >
                   Quản lý đơn
                 </Link>
-                <Link
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:bg-muted"
-                  href="/admin"
-                >
-                  Quản trị
-                </Link>
+                {role === "ADMIN" && (
+                  <Link
+                    className="rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-sm text-foreground transition hover:border-primary hover:text-primary dark:border-slate-800"
+                    href="/admin"
+                  >
+                    Quản trị
+                  </Link>
+                )}
               </div>
             </div>
           </header>

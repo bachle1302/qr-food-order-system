@@ -33,8 +33,8 @@ export function OrderDetailPanel({
 }: OrderDetailPanelProps) {
   if (!order) {
     return (
-      <aside className="h-fit rounded-lg border border-border bg-card p-5 text-card-foreground xl:sticky xl:top-4">
-        <div className="grid min-h-72 place-items-center rounded-lg border border-dashed border-border bg-background/40 p-6 text-center">
+      <aside className="h-fit border-y border-gray-200 py-5 dark:border-slate-800 text-card-foreground xl:sticky xl:top-4">
+        <div className="grid min-h-72 place-items-center border-y border-dashed border-gray-200 py-6 text-center dark:border-slate-800">
           <div>
             <div className="mx-auto grid size-10 place-items-center rounded-full bg-muted text-muted-foreground">
               <ClipboardList className="size-5" />
@@ -52,7 +52,7 @@ export function OrderDetailPanel({
   }
 
   return (
-    <aside className="h-fit rounded-lg border border-border bg-card text-card-foreground xl:sticky xl:top-4">
+    <aside className="h-fit border-y border-gray-200 text-foreground dark:border-slate-800 xl:sticky xl:top-4">
       <div className="border-b border-border p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -64,7 +64,7 @@ export function OrderDetailPanel({
           <OrderStatusBadge status={order.status} />
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg border border-border bg-background/50 p-3">
+          <div className="border-l-2 border-primary pl-3">
             <p className="text-muted-foreground">Khách hàng</p>
             <p className="mt-1 font-medium text-foreground">
               {getCustomerLabel(order)}
@@ -75,7 +75,7 @@ export function OrderDetailPanel({
               </p>
             ) : null}
           </div>
-          <div className="rounded-lg border border-border bg-background/50 p-3">
+          <div className="border-l-2 border-primary pl-3">
             <p className="text-muted-foreground">Tạo lúc</p>
             <p className="mt-1 font-medium text-foreground">
               {formatDateTime(order.createdAt)}
@@ -113,7 +113,7 @@ export function OrderDetailPanel({
         </div>
 
         {order.note ? (
-          <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
+          <div className="border-l-2 border-primary pl-3 text-sm">
             <p className="text-muted-foreground">Ghi chú đơn</p>
             <p className="mt-1 text-foreground">{order.note}</p>
           </div>

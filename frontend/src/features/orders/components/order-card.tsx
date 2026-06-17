@@ -30,7 +30,7 @@ export function OrderCard({
   onUpdateStatus,
 }: OrderCardProps) {
   return (
-    <article className="rounded-lg border border-border bg-card p-5">
+    <article className="border-y border-gray-200 py-5 dark:border-slate-800">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">Đơn #{order.id}</p>
@@ -60,7 +60,7 @@ export function OrderCard({
       <div className="mt-4 space-y-2">
         {order.items.map((item, index) => (
           <div
-            className="rounded-md border border-border bg-background p-3 text-sm"
+            className="border-b border-gray-200 py-3 text-sm dark:border-slate-800"
             key={`${order.id}-${item.dishId}-${index}`}
           >
             <div className="flex items-center justify-between gap-3">

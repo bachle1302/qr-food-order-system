@@ -335,7 +335,7 @@ export function AdminDiscountsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="border-y border-gray-200 py-4 dark:border-slate-800">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
@@ -504,7 +504,7 @@ export function AdminDiscountsPage() {
         </form>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="border-y border-gray-200 py-4 dark:border-slate-800">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="grid flex-1 gap-1 text-sm text-foreground">
             Search code
@@ -535,7 +535,7 @@ export function AdminDiscountsPage() {
       </section>
 
       {notice ? (
-        <div className="rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
+        <div className="border-l-4 border-primary py-2 pl-3 text-sm text-foreground">
           {notice}
         </div>
       ) : null}
@@ -558,7 +558,7 @@ export function AdminDiscountsPage() {
 
           return (
             <article
-              className="rounded-lg border border-border bg-card p-4"
+              className="border-y border-gray-200 py-4 dark:border-slate-800"
               key={discount.id}
             >
               <div className="flex h-full flex-col justify-between gap-4">

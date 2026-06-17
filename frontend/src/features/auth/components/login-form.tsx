@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
-import { setTokens } from "@/shared/auth/token-storage";
+import { setTokens, setUserRole } from "@/shared/auth/token-storage";
 import { login } from "../api/auth.client";
 
 function getLoginError(error: unknown) {
@@ -15,7 +15,7 @@ function getLoginError(error: unknown) {
   if (error instanceof Error) {
     return error.message;
   }
-  return "Dang nhap that bai.";
+  return "Đăng nhập thất bại.";
 }
 
 export function LoginForm() {
@@ -36,7 +36,13 @@ export function LoginForm() {
         accessToken: auth.accessToken,
         refreshToken: auth.refreshToken,
       });
-      router.push("/staff/orders");
+      setUserRole(auth.user.role);
+      
+      if (auth.user.role === "ADMIN") {
+        router.push("/admin");
+      } else {
+        router.push("/staff/orders");
+      }
     } catch (loginError) {
       setError(getLoginError(loginError));
     } finally {

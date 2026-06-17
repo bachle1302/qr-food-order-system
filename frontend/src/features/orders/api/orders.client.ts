@@ -38,16 +38,8 @@ export function getManagedOrders(
     token,
   });
 }
-
 export function getNewOrders(token: string) {
   return apiFetch<Order[]>(endpoints.orders.manageNew, {
-    cache: "no-store",
-    token,
-  });
-}
-
-export function getKitchenOrders(token: string) {
-  return apiFetch<Order[]>(endpoints.orders.kitchen, {
     cache: "no-store",
     token,
   });

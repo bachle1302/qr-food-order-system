@@ -266,7 +266,7 @@ export function AdminTablesPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="border-y border-gray-200 py-4 dark:border-slate-800">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
@@ -327,7 +327,7 @@ export function AdminTablesPage() {
       </section>
 
       {notice ? (
-        <div className="rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
+        <div className="border-l-4 border-primary py-2 pl-3 text-sm text-foreground">
           {notice}
         </div>
       ) : null}
@@ -349,7 +349,7 @@ export function AdminTablesPage() {
 
           return (
             <article
-              className="rounded-lg border border-border bg-card p-4"
+              className="border-y border-gray-200 py-4 dark:border-slate-800"
               key={table.id}
             >
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
