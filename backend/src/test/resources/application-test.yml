@@ -1,0 +1,20 @@
+app:
+  seed:
+    enabled: false
+  rate-limit:
+    enabled: true
+    public-order-per-minute: 2
+    check-in-per-minute: 2
+    status-per-minute: 2
+    table-qr-per-minute: 2
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/test-unused
+      database: test-unused
+
+jwt:
+  secret: Y2hhbmdlX21lX2Rldl9vbmx5X21pbmltdW1fMzJfY2hhcnM=
+  expiration: 3600000
+  refresh-expiration: 604800000

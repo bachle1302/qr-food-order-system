@@ -1502,3 +1502,30 @@ Test nhanh flow fullstack:
 7. Kiem tra don moi va SSE realtime
 ```
 
+---
+
+## Rate Limiting (Giới hạn tần suất yêu cầu)
+
+Dự án tích hợp Rate Limiting in-memory cơ bản cho các API công cộng nhạy cảm để chống spam:
+- **Tạo đơn hàng** (`POST /api/orders/public/qr`): mặc định 10 requests / phút / IP.
+- **Check-in** (`POST /api/customer-sessions/check-in`): mặc định 20 requests / phút / IP.
+- **Xem trạng thái đơn** (`GET /api/orders/public/session/**`): mặc định 60 requests / phút / IP.
+- **Quét QR bàn** (`GET /api/tables/qr/**`): mặc định 60 requests / phút / IP.
+
+Khi vượt quá giới hạn, hệ thống trả về mã lỗi `HTTP 429 Too Many Requests` kèm theo header `Retry-After` chứa số giây cần chờ đợi tiếp theo.
+
+### Cấu hình biến môi trường
+Các biến sau được hỗ trợ trong `.env` và `docker-compose.yml` để kiểm soát cấu hình:
+```env
+APP_RATE_LIMIT_ENABLED=true
+APP_RATE_LIMIT_PUBLIC_ORDER_PER_MINUTE=10
+APP_RATE_LIMIT_CHECK_IN_PER_MINUTE=20
+APP_RATE_LIMIT_STATUS_PER_MINUTE=60
+APP_RATE_LIMIT_TABLE_QR_PER_MINUTE=60
+```
+
+### Lưu ý Production
+Cơ chế Rate Limiting hiện tại hoạt động **in-memory (sử dụng ConcurrentHashMap)**, phù hợp chạy local, môi trường kiểm thử (dev/demo) hoặc chạy single-instance.
+Nếu triển khai hệ thống lên môi trường production có nhiều instances (sau load balancer), cần chuyển đổi cơ chế này sang dùng **Redis** để đồng bộ trạng thái giới hạn giữa các server instance.
+
+
