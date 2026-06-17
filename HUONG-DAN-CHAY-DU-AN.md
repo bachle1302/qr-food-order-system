@@ -1528,4 +1528,13 @@ APP_RATE_LIMIT_TABLE_QR_PER_MINUTE=60
 Cơ chế Rate Limiting hiện tại hoạt động **in-memory (sử dụng ConcurrentHashMap)**, phù hợp chạy local, môi trường kiểm thử (dev/demo) hoặc chạy single-instance.
 Nếu triển khai hệ thống lên môi trường production có nhiều instances (sau load balancer), cần chuyển đổi cơ chế này sang dùng **Redis** để đồng bộ trạng thái giới hạn giữa các server instance.
 
+---
+
+## CI/CD (GitHub Actions)
+
+Dự án tích hợp sẵn các workflow tự động chạy kiểm thử và build trên GitHub Actions:
+- **Backend CI**: Thực hiện `mvn test` và `mvn clean package` để xác thực biên dịch và các ca kiểm thử bảo mật/rate limit.
+- **Frontend CI**: Thực hiện cài đặt dependency sạch (`npm ci`), chạy kiểm tra linter (`npm run lint`), kiểm tra kiểu dữ liệu TypeScript (`npx tsc --noEmit`), và build gói production (`npm run build`).
+- **Docker CI**: Xác thực tính hợp lệ của file `docker-compose.yml` (`docker compose config`) và thử nghiệm đóng gói Docker Image cho cả `backend` và `frontend`.
+
 

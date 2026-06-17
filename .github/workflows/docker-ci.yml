@@ -1,0 +1,41 @@
+name: Docker CI
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - 'docker-compose.yml'
+      - '.env.example'
+      - '.github/workflows/docker-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - 'docker-compose.yml'
+      - '.env.example'
+      - '.github/workflows/docker-ci.yml'
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Temporary .env File
+        run: cp .env.example .env
+
+      - name: Verify Docker Compose Config
+        run: docker compose config
+
+      - name: Build Backend Docker Image
+        run: docker compose build backend
+
+      - name: Build Frontend Docker Image
+        run: docker compose build frontend

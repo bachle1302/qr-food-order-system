@@ -82,7 +82,7 @@ type StatCardProps = {
   title: string;
   value: string;
   trend: number;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   colorClass: string;
 };
 
@@ -467,7 +467,7 @@ export function AdminDashboardPage() {
                       dx={-10}
                     />
                     <Tooltip
-                      formatter={(value: any) => formatCurrency(value)}
+                      formatter={(value: unknown) => formatCurrency(Number(value))}
                       contentStyle={{
                         borderRadius: "12px",
                         border: "none",
