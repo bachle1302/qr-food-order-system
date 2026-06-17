@@ -17,6 +17,7 @@ import {
   Trash2,
   Utensils,
   UserRound,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
@@ -620,7 +621,7 @@ export function CustomerOrderClient({
           }`}
         >
           {successOrder ? (
-            <SuccessNotice onViewOrders={() => setActiveTab("orders")} />
+            <SuccessNotice activeTab={activeTab} onToggleTab={setActiveTab} />
           ) : null}
 
           {activeTab === "menu" ? (
@@ -817,20 +818,22 @@ function CustomerSampleHeader({
             </span>
           </div>
         </div>
-        {orderCount > 0 ? (
-          <button
-            className="flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1.5 text-sm font-medium text-orange-600 dark:bg-orange-500/15 dark:text-orange-300"
-            onClick={onViewOrders}
-            type="button"
-          >
-            <ReceiptText className="size-4" />
-            Đơn của bạn
-          </button>
-        ) : null}
-        <ThemeToggle />
-        <Button onClick={onSwitchGuest} size="sm" type="button" variant="ghost">
-          Đổi khách
-        </Button>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {orderCount > 0 ? (
+            <button
+              className="flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1.5 text-xs sm:text-sm font-medium text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 animate-pulse"
+              onClick={onViewOrders}
+              type="button"
+            >
+              <ReceiptText className="size-3.5 sm:size-4" />
+              Đơn của bạn
+            </button>
+          ) : null}
+          <ThemeToggle />
+          <Button onClick={onSwitchGuest} size="sm" type="button" variant="ghost" className="h-9 px-2.5 sm:px-3 text-xs sm:text-sm">
+            Đổi khách
+          </Button>
+        </div>
       </div>
     </header>
   );
@@ -880,15 +883,25 @@ type SearchBoxProps = {
 
 function SearchBox({ searchQuery, onChange }: SearchBoxProps) {
   return (
-    <label className="relative block">
+    <div className="relative block">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <input
-        className="h-11 w-full rounded-full border border-gray-200 bg-transparent pl-9 pr-3 text-sm text-gray-800 outline-none placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+        className="h-11 w-full rounded-full border border-gray-200 bg-transparent pl-9 pr-10 text-sm text-gray-800 outline-none placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
         onChange={(event) => onChange(event.target.value)}
         placeholder="Tìm món ăn..."
         value={searchQuery}
       />
-    </label>
+      {searchQuery ? (
+        <button
+          className="absolute right-3 top-1/2 size-6 -translate-y-1/2 flex items-center justify-center rounded-full text-muted-foreground hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+          onClick={() => onChange("")}
+          type="button"
+          aria-label="Xóa tìm kiếm"
+        >
+          <X className="size-3.5" />
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -913,7 +926,7 @@ function CategoryPills({
   onSelect,
 }: CategoryPillsProps) {
   return (
-    <div className="-mx-4 overflow-x-auto px-4">
+    <div className="-mx-4 overflow-x-auto px-4 no-scrollbar">
       <div className="flex w-max gap-2 pb-1">
         <CategoryPill
           count={totalCount}
@@ -989,7 +1002,13 @@ function NoticeCard() {
   );
 }
 
-function SuccessNotice({ onViewOrders }: { onViewOrders: () => void }) {
+function SuccessNotice({
+  activeTab,
+  onToggleTab,
+}: {
+  activeTab: ActiveTab;
+  onToggleTab: (tab: ActiveTab) => void;
+}) {
   return (
     <section className="border-l-4 border-emerald-500 py-3 pl-3">
       <div className="flex items-start gap-3">
@@ -1006,12 +1025,12 @@ function SuccessNotice({ onViewOrders }: { onViewOrders: () => void }) {
           </p>
           <Button
             className="mt-3"
-            onClick={onViewOrders}
+            onClick={() => onToggleTab(activeTab === "menu" ? "orders" : "menu")}
             size="sm"
             type="button"
             variant="outline"
           >
-            Xem đơn của bạn
+            {activeTab === "menu" ? "Xem đơn của bạn" : "Quay lại Menu"}
           </Button>
         </div>
       </div>

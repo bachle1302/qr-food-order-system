@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Optional;
 
 @Component
 @Profile("dev")
@@ -148,14 +149,20 @@ public class DevDataSeeder implements CommandLineRunner {
     }
 
     private void createDishIfMissing(String name, String description, double price, String categoryId) {
-        if (dishRepository.existsByName(name)) {
+        Optional<Dish> existingOpt = dishRepository.findByName(name);
+        if (existingOpt.isPresent()) {
+            Dish existing = existingOpt.get();
+            // Force update all seeded image URLs so we can redistribute them uniquely
+            existing.setImageUrl(getFoodImageUrl(name));
+            dishRepository.save(existing);
+            log.info("Refreshed image for existing dish: {}", name);
             return;
         }
 
         Dish dish = Dish.builder()
                 .name(name)
                 .description(description)
-                .imageUrl("")
+                .imageUrl(getFoodImageUrl(name))
                 .price(price)
                 .categoryId(categoryId)
                 .available(true)
@@ -163,6 +170,144 @@ public class DevDataSeeder implements CommandLineRunner {
 
         dishRepository.save(dish);
         log.info("Seeded dev dish: {}", name);
+    }
+
+    private String getFoodImageUrl(String name) {
+        String lower = name.toLowerCase();
+        int hash = Math.abs(name.hashCode());
+
+        String[] cơm = {
+            "1512058564366-18510be2db19",
+            "1541832676-9b763b0239ab",
+            "1546069901-ba9599a7e63c",
+            "1600891964599-f61ba0e24092",
+            "1626082927389-6cd097cdc6ec"
+        };
+        String[] mì_bún = {
+            "1582878826629-29b7ad1cdc43",
+            "1625398407796-82650a8c135f",
+            "1569718212165-3a8278d5f624",
+            "1585032226651-759b368d7246",
+            "1617093727343-374698b1b08d",
+            "1552611052-33e04de081de"
+        };
+        String[] gà = {
+            "1569058242253-92a9c755a0ec",
+            "1604503468506-a8da13d82791",
+            "1598515214211-89d3c73ae83b",
+            "1626082927389-6cd097cdc6ec",
+            "1562967914-608f82629a8a"
+        };
+        String[] bò = {
+            "1600891964599-f61ba0e24092",
+            "1544025162-d76694265947",
+            "1558030006-450675393462",
+            "1603048588665-791ca8aea617",
+            "1514516345957-556ca7d90a29"
+        };
+        String[] heo = {
+            "1602489114781-42dbb9ea9ff9",
+            "1532550907401-a500c9a57435",
+            "1624462966581-bc6d768cbce5",
+            "1544025162-d76694265947"
+        };
+        String[] hải_sản = {
+            "1565557623262-b51c2513a641",
+            "1519708227418-c8fd9a32b7a2",
+            "1534422298391-e4f8c172dddb",
+            "1559737221-7a2d09d038ac",
+            "1615141982883-c7ad0e69fd62"
+        };
+        String[] lẩu = {
+            "1547928500-300fc8e22330",
+            "1555126634-323283e090fa",
+            "1563245372-f21724e3856d"
+        };
+        String[] nướng = {
+            "1555939594-58d7cb561ad1",
+            "1482049016688-2d3e1b311543",
+            "1529193591184-b1d58069ecdd"
+        };
+        String[] ăn_vặt = {
+            "1573080496219-bb080dd4f877",
+            "1607330289024-1535c6b4e1c1",
+            "1581263750988-d31671958cfd",
+            "1534308983496-4fabb1a015ee",
+            "1541532713592-79a0317b6b77"
+        };
+        String[] rau_salad = {
+            "1512621776951-a57141f2eefd",
+            "1540420773420-3366772f4999",
+            "1623428187969-5da2d87e0af9",
+            "1546069901-ba9599a7e63c"
+        };
+        String[] trà_sữa = {
+            "1541658016709-82535e94bc69",
+            "1507133750040-4a8f57021571",
+            "1596797038530-2c107229654b"
+        };
+        String[] cà_phê = {
+            "1509042239860-f550ce710b93",
+            "1514432324607-a09d9b4aefdd",
+            "1541167760496-1628856ab772",
+            "1497515114629-f71d768fd07c",
+            "1578314675249-a6910f80cc4e"
+        };
+        String[] nước_ngọt = {
+            "1622483767028-3f66f32aef97",
+            "1513558161293-cdaf765ed2fd"
+        };
+        String[] trà_cam_chanh = {
+            "1556679343-c7306c1976bc",
+            "1600271886742-f049cd451bba",
+            "1595981267035-7b04ca84a82d",
+            "1536935338788-846bb9981813"
+        };
+        String[] tráng_miệng = {
+            "1551024601-bec78aea704b",
+            "1587314168485-3236d6710814",
+            "1563729784474-d77dbb933a9e",
+            "1579372786545-d24232daf58c",
+            "1551024709-8f23befc6f87"
+        };
+
+        String photoId = "1546069901-ba9599a7e63c"; // fallback
+
+        if (lower.contains("trà sữa") || lower.contains("hồng trà") || lower.contains("ô long")) {
+            photoId = trà_sữa[hash % trà_sữa.length];
+        } else if (lower.contains("cà phê") || lower.contains("bạc xỉu") || lower.contains("cappuccino") || lower.contains("latte") || lower.contains("americano") || lower.contains("cold brew")) {
+            photoId = cà_phê[hash % cà_phê.length];
+        } else if (lower.contains("coca") || lower.contains("pepsi") || lower.contains("sprite") || lower.contains("nước suối")) {
+            photoId = nước_ngọt[hash % nước_ngọt.length];
+        } else if (lower.contains("trà đào") || lower.contains("trà chanh") || lower.contains("nước cam") || lower.contains("chanh dây") || lower.contains("sinh tố")) {
+            photoId = trà_cam_chanh[hash % trà_cam_chanh.length];
+        } else if (lower.contains("bánh flan") || lower.contains("chè") || lower.contains("sữa chua") || lower.contains("kem") || lower.contains("panna cotta") || lower.contains("tiramisu")) {
+            photoId = tráng_miệng[hash % tráng_miệng.length];
+        } else if (lower.contains("phở") || lower.contains("bún") || lower.contains("hủ tiếu") || lower.contains("miến") || lower.contains("mì xào")) {
+            photoId = mì_bún[hash % mì_bún.length];
+        } else if (lower.contains("cơm")) {
+            photoId = cơm[hash % cơm.length];
+        } else if (lower.contains("gà")) {
+            photoId = gà[hash % gà.length];
+        } else if (lower.contains("bò")) {
+            photoId = bò[hash % bò.length];
+        } else if (lower.contains("sườn nướng") || lower.contains("ba chỉ nướng") || lower.contains("sườn cây")) {
+            photoId = nướng[hash % nướng.length];
+        } else if (lower.contains("heo") || lower.contains("ba chỉ") || lower.contains("sườn") || lower.contains("thịt kho")) {
+            photoId = heo[hash % heo.length];
+        } else if (lower.contains("tôm") || lower.contains("mực") || lower.contains("cua") || lower.contains("nghêu") || lower.contains("hàu") || lower.contains("cá hồi") || lower.contains("bạch tuộc") || lower.contains("hải sản")) {
+            photoId = hải_sản[hash % hải_sản.length];
+        } else if (lower.contains("lẩu")) {
+            photoId = lẩu[hash % lẩu.length];
+        } else if (lower.contains("nướng")) {
+            photoId = nướng[hash % nướng.length];
+        } else if (lower.contains("khoai") || lower.contains("nem") || lower.contains("phô mai") || lower.contains("tokbokki") || lower.contains("xúc xích") || lower.contains("viên chiên")) {
+            photoId = ăn_vặt[hash % ăn_vặt.length];
+        } else if (lower.contains("salad") || lower.contains("rau") || lower.contains("cải") || lower.contains("đậu hũ") || lower.contains("nấm")) {
+            photoId = rau_salad[hash % rau_salad.length];
+        }
+
+        return "https://images.unsplash.com/photo-" + photoId + "?auto=format&fit=crop&w=600&q=80";
     }
 
     private void seedDishes() {

@@ -3,7 +3,7 @@
 import { Loader2, ReceiptText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Dish } from "@/features/menu/types";
-import type { OrderResponse } from "../types";
+import type { OrderResponse, OrderItemResponse } from "../types";
 
 type CustomerOrdersSectionProps = {
   dishes: Dish[];
@@ -57,6 +57,13 @@ function getOrderStatusLabel(status: string) {
 
 function getDishName(dishes: Dish[], dishId: string) {
   return dishes.find((dish) => dish.id === dishId)?.name ?? `Món #${dishId}`;
+}
+
+function getDishImageUrl(dishes: Dish[], item: OrderItemResponse) {
+  if (item.dishImageUrl) {
+    return item.dishImageUrl;
+  }
+  return dishes.find((dish) => dish.id === item.dishId)?.imageUrl ?? "";
 }
 
 function getShortOrderId(orderId: string) {
@@ -146,32 +153,50 @@ export function CustomerOrdersSection({
                 </span>
               </div>
 
-              <div className="mt-3 space-y-2">
-                {order.items.map((item, index) => (
-                  <div
-                    className="grid grid-cols-[1fr_auto] gap-3 text-sm"
-                    key={`${order.id}-${item.dishId}-${index}`}
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">
-                        {getDishName(dishes, item.dishId)}
-                      </p>
-                      {item.note ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Ghi chú: {item.note}
+              <div className="mt-3 space-y-3">
+                {order.items.map((item, index) => {
+                  const imageUrl = getDishImageUrl(dishes, item);
+                  return (
+                    <div
+                      className="flex items-center gap-3 text-sm py-1.5"
+                      key={`${order.id}-${item.dishId}-${index}`}
+                    >
+                      <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-orange-500/10 border border-orange-500/10 dark:border-orange-500/20">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.dishName || getDishName(dishes, item.dishId)}
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-orange-600 dark:text-orange-300">
+                            <span className="text-[10px] font-bold">Food</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground">
+                          {item.dishName || getDishName(dishes, item.dishId)}
                         </p>
-                      ) : null}
+                        {item.note ? (
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Ghi chú: {item.note}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="text-right shrink-0 ml-2">
+                        <p className="font-medium text-foreground">
+                          x{item.quantity}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(item.pricePerUnit)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-foreground">
-                        x{item.quantity}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatCurrency(item.pricePerUnit)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {order.note ? (

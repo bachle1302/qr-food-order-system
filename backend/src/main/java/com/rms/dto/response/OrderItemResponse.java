@@ -9,4 +9,6 @@ public class OrderItemResponse {
     private int quantity;
     private Double pricePerUnit;
     private String note;
+    private String dishName;
+    private String dishImageUrl;
 }
