@@ -30,7 +30,7 @@ export function OrderCard({
   onUpdateStatus,
 }: OrderCardProps) {
   return (
-    <article className="rounded-lg border border-border bg-card p-5">
+    <article className="border-y border-gray-200 py-5 dark:border-slate-800">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">Đơn #{order.id}</p>
@@ -57,26 +57,46 @@ export function OrderCard({
         </span>
       </div>
 
-      <div className="mt-4 space-y-2">
-        {order.items.map((item, index) => (
-          <div
-            className="rounded-md border border-border bg-background p-3 text-sm"
-            key={`${order.id}-${item.dishId}-${index}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-medium text-foreground">
-                {getDishLabel(item.dishId, dishNameById)}
-              </span>
-              <span className="text-muted-foreground">x{item.quantity}</span>
+      <div className="mt-4 space-y-3">
+        {order.items.map((item, index) => {
+          const imageUrl = item.dishImageUrl;
+          const name = item.dishName || getDishLabel(item.dishId, dishNameById);
+          return (
+            <div
+              className="flex items-center gap-3 border-b border-gray-200 py-3 text-sm dark:border-slate-800"
+              key={`${order.id}-${item.dishId}-${index}`}
+            >
+              <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-orange-500/10 border border-orange-500/10 dark:border-orange-500/20">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={name}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-orange-600 dark:text-orange-300">
+                    <span className="text-[10px] font-bold">Food</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-foreground truncate">
+                    {name}
+                  </span>
+                  <span className="text-muted-foreground shrink-0">x{item.quantity}</span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatCurrency(item.pricePerUnit)}
+                </p>
+                {item.note ? (
+                  <p className="mt-1 text-xs text-muted-foreground">Ghi chú: {item.note}</p>
+                ) : null}
+              </div>
             </div>
-            <p className="mt-1 text-muted-foreground">
-              {formatCurrency(item.pricePerUnit)}
-            </p>
-            {item.note ? (
-              <p className="mt-1 text-muted-foreground">Ghi chú: {item.note}</p>
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {order.note ? (

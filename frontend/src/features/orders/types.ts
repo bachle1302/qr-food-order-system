@@ -14,6 +14,8 @@ export type OrderItem = {
   quantity: number;
   pricePerUnit: number;
   note?: string | null;
+  dishName?: string;
+  dishImageUrl?: string;
 };
 
 export type Order = {

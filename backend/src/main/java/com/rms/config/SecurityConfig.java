@@ -1,6 +1,7 @@
 package com.rms.config;
 
 import com.rms.security.JwtAuthenticationFilter;
+import com.rms.security.ratelimit.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
     
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final UserDetailsService userDetailsService;
     private final CorsConfigurationSource corsConfigurationSource;
     
@@ -78,12 +80,45 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register").hasAuthority("ADMIN")
                         
                         // ADMIN có quyền truy cập tất cả
+                        // API Thống kê/Doanh thu - chỉ ADMIN
+                        .requestMatchers("/api/orders/summary/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/orders/revenue/**").hasAuthority("ADMIN")
+
+                        // CRUD Categories - chỉ ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/categories").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/categories/**").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/categories/**").hasAuthority("ADMIN")
+
+                        // CRUD Dishes - chỉ ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/dishes").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/dishes/**").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/dishes/**").hasAuthority("ADMIN")
+
+                        // CRUD Tables - chỉ ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/tables").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/tables/**/regenerate-qr-token").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/tables/**").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/tables/**").hasAuthority("ADMIN")
+
+                        // CRUD Discounts - chỉ ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/discounts").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/discounts/**").hasAuthority("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/discounts/**").hasAuthority("ADMIN")
+                        
+                        // GET Discount cho khách kiểm tra code
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/discounts/code/**").permitAll()
+
+                        // Xóa Order - chỉ ADMIN
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/orders/**").hasAuthority("ADMIN")
+
+                        // ADMIN có quyền truy cập tất cả
                         .requestMatchers("/api/**").hasAnyAuthority("ADMIN", "STAFF")
                         
                         .anyRequest().authenticated())
 
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
         
         return http.build();
     }

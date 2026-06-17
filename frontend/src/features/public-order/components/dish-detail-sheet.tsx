@@ -41,16 +41,16 @@ export function DishDetailSheet({
   const subtotal = dish.price * quantity;
 
   return (
-    <div className="fixed inset-0 z-50 mx-auto max-w-[520px] bg-background/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 mx-auto max-w-[520px] bg-foreground/50 backdrop-blur-sm">
       <button
         aria-label="Đóng chi tiết món"
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={onClose}
         type="button"
       />
-      <section className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-hidden rounded-t-lg border border-border bg-card shadow-lg">
+      <section className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-hidden border-t border-gray-200 bg-gray-50 shadow-2xl dark:border-slate-800 dark:bg-slate-950">
         <div className="max-h-[calc(92vh-5rem)] overflow-y-auto">
-          <div className="relative aspect-[16/10] bg-muted">
+          <div className="relative h-56 bg-gray-200 dark:bg-slate-800">
             {dish.imageUrl ? (
               <div
                 aria-label={dish.name}
@@ -65,7 +65,7 @@ export function DishDetailSheet({
             )}
             <Button
               aria-label="Đóng chi tiết món"
-              className="absolute right-3 top-3 bg-background/90 backdrop-blur"
+              className="absolute right-3 top-3 rounded-full bg-foreground/50 text-background backdrop-blur hover:bg-foreground/60"
               onClick={onClose}
               size="icon"
               type="button"
@@ -82,7 +82,7 @@ export function DishDetailSheet({
                   <p className="text-xs font-medium text-muted-foreground">
                     {categoryName}
                   </p>
-                  <h2 className="mt-1 text-xl font-semibold text-foreground">
+                  <h2 className="mt-1 text-2xl font-bold text-foreground">
                     {dish.name}
                   </h2>
                 </div>
@@ -101,7 +101,7 @@ export function DishDetailSheet({
                   Món chưa có mô tả chi tiết.
                 </p>
               )}
-              <p className="mt-3 text-lg font-semibold text-primary">
+              <p className="mt-2 text-xl font-bold text-primary">
                 {formatCurrency(dish.price)}
               </p>
             </div>
@@ -109,34 +109,36 @@ export function DishDetailSheet({
             <label className="block text-sm font-medium text-foreground">
               Ghi chú cho món này
               <textarea
-                className="mt-2 min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-normal text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-2 min-h-20 w-full rounded-xl border border-gray-200 bg-transparent px-3 py-2 text-sm font-normal text-gray-800 outline-none placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-800 dark:text-slate-100"
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="Ít cay, không hành..."
                 value={note}
               />
             </label>
 
-            <div className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center justify-center gap-6 border-y border-gray-200 py-3 dark:border-slate-800">
               <span className="text-sm font-medium text-foreground">
                 Số lượng
               </span>
-              <div className="flex items-center rounded-full border border-border bg-card">
+              <div className="flex items-center gap-4">
                 <Button
                   disabled={!isAvailable || quantity <= 1}
                   onClick={() => setQuantity((current) => current - 1)}
-                  size="icon-sm"
+                  className="size-11 rounded-full bg-card"
+                  size="icon"
                   type="button"
                   variant="ghost"
                 >
                   <Minus />
                 </Button>
-                <span className="w-9 text-center text-sm font-semibold text-foreground">
+                <span className="w-9 text-center text-2xl font-bold text-foreground">
                   {quantity}
                 </span>
                 <Button
                   disabled={!isAvailable}
                   onClick={() => setQuantity((current) => current + 1)}
-                  size="icon-sm"
+                  className="size-11 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-500/15 dark:text-orange-300"
+                  size="icon"
                   type="button"
                   variant="ghost"
                 >
@@ -153,9 +155,9 @@ export function DishDetailSheet({
           </div>
         </div>
 
-        <div className="border-t border-border bg-card p-4">
+        <div className="border-t border-gray-200 bg-gray-50/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
           <Button
-            className="h-12 w-full justify-between rounded-lg px-4"
+            className="h-12 w-full justify-between rounded-xl bg-orange-500 px-4 text-base font-bold text-white shadow-md hover:bg-orange-600"
             disabled={!isAvailable}
             onClick={() =>
               onSave(dish.id, quantity, note.trim() || undefined)

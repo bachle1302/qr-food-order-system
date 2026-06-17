@@ -50,7 +50,6 @@ export const endpoints = {
       `/api/orders/public/session/${encodeURIComponent(customerSessionId)}?qrToken=${encodeURIComponent(qrToken)}`,
     manage: "/api/orders/manage",
     manageNew: "/api/orders/manage/new",
-    kitchen: "/api/orders/manage/kitchen",
     dailySummary: "/api/orders/summary/daily",
     dailyRevenue: "/api/orders/revenue/daily",
     monthlyRevenue: "/api/orders/revenue/monthly",

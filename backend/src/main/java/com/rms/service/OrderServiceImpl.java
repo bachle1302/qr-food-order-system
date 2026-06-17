@@ -434,7 +434,7 @@ public class OrderServiceImpl implements OrderService {
             ir.setDishId(it.getDishId());
             ir.setQuantity(it.getQuantity());
             ir.setPricePerUnit(it.getPricePerUnit());
-            ir.setNote(it.getNote());
+            ir.setNote(it.getNote()); dishRepository.findById(it.getDishId()).ifPresent(d -> { ir.setDishName(d.getName()); ir.setDishImageUrl(d.getImageUrl()); });
             return ir;
         }).toList();
         r.setItems(items);

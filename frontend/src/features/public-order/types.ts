@@ -42,6 +42,8 @@ export type OrderItemResponse = {
   quantity: number;
   pricePerUnit: number;
   note?: string | null;
+  dishName?: string;
+  dishImageUrl?: string;
 };
 
 export type OrderResponse = {

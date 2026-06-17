@@ -272,7 +272,7 @@ export function StaffOrdersDashboard() {
   if (!token) {
     return (
       <div className="grid min-h-[calc(100vh-2.5rem)] place-items-center">
-        <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-card-foreground">
+        <div className="w-full max-w-md border-y border-gray-200 py-6 dark:border-slate-800 text-card-foreground">
           <h1 className="text-xl font-semibold text-foreground">
             Cần đăng nhập
           </h1>
@@ -290,7 +290,7 @@ export function StaffOrdersDashboard() {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
-        <section className="min-w-0 rounded-lg border border-border bg-card text-card-foreground">
+        <section className="min-w-0 border-y border-gray-200 text-foreground dark:border-slate-800">
           <div className="border-b border-border p-4 md:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -309,9 +309,6 @@ export function StaffOrdersDashboard() {
                 <Button onClick={refresh} size="sm" variant="outline">
                   <RefreshCw className="size-4" />
                   Tải lại
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/staff/kitchen">Màn bếp</Link>
                 </Button>
               </div>
             </div>
@@ -392,7 +389,7 @@ export function StaffOrdersDashboard() {
 
             <div className="flex gap-3 overflow-x-auto pb-1">
               {tableCards.length === 0 ? (
-                <div className="min-w-40 rounded-lg border border-dashed border-border bg-background/50 p-4 text-sm text-muted-foreground">
+                <div className="min-w-40 border-y border-dashed border-gray-200 py-4 dark:border-slate-800 text-sm text-muted-foreground">
                   Chưa có bàn từ dữ liệu đơn hàng.
                 </div>
               ) : (
@@ -400,10 +397,10 @@ export function StaffOrdersDashboard() {
                   const active = tableIdFilter.trim() === table.tableId;
                   return (
                     <button
-                      className={`min-w-28 rounded-lg border p-4 text-left transition hover:bg-muted ${
+                      className={`min-w-28 border-y px-3 py-4 text-left transition hover:border-primary hover:text-primary ${
                         active
-                          ? "border-primary/40 bg-primary/10"
-                          : "border-border bg-background/60"
+                          ? "border-primary bg-primary/15"
+                          : "border-gray-200 bg-transparent dark:border-slate-800"
                       }`}
                       key={table.tableId}
                       onClick={() => setTableIdFilter(table.tableId)}
@@ -446,7 +443,7 @@ export function StaffOrdersDashboard() {
             {isLoading ? <LoadingState label="Đang tải đơn hàng..." /> : null}
 
             {!isLoading && visibleOrders.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-background/50 p-8 text-center">
+              <div className="border-y border-dashed border-gray-200 py-8 text-center dark:border-slate-800">
                 <Utensils className="mx-auto size-8 text-muted-foreground" />
                 <h2 className="mt-3 font-semibold text-foreground">
                   Chưa có đơn hàng
@@ -458,8 +455,8 @@ export function StaffOrdersDashboard() {
             ) : null}
 
             {visibleOrders.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-border">
-                <div className="hidden grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] border-b border-border bg-background/70 px-4 py-3 text-sm font-medium text-muted-foreground lg:grid">
+              <div className="overflow-hidden border border-gray-200 dark:border-slate-800 rounded-lg">
+                <div className="hidden grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] border-b border-gray-200 px-4 py-3 text-sm font-medium text-muted-foreground dark:border-slate-800 lg:grid">
                   <span>Bàn</span>
                   <span>Khách hàng</span>
                   <span>Món ăn</span>
@@ -474,7 +471,9 @@ export function StaffOrdersDashboard() {
                     return (
                       <div
                         className={`grid w-full gap-3 px-4 py-3 text-left transition hover:bg-muted/70 lg:grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] lg:items-center ${
-                          active ? "bg-muted" : "bg-card"
+                          active
+                            ? "ring-2 ring-primary bg-primary/15 rounded-lg relative z-10"
+                            : "bg-transparent"
                         }`}
                         key={order.id}
                         onClick={() => setSelectedOrderId(order.id)}
@@ -514,7 +513,7 @@ export function StaffOrdersDashboard() {
                           </p>
                           {order.items.slice(0, 2).map((item, index) => (
                             <div
-                              className="flex items-center justify-between gap-3 rounded-md border border-border bg-background/60 p-2"
+                              className="flex items-center justify-between gap-3 border-b border-gray-200 py-2 dark:border-slate-800"
                               key={`${order.id}-${item.dishId}-${index}`}
                             >
                               <div className="min-w-0">

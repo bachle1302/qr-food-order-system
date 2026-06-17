@@ -70,8 +70,8 @@ export function TableQrDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-lg border border-border bg-card p-4 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+      <section className="w-full max-w-md border-y border-gray-200 bg-gray-50 py-4 dark:border-slate-800 dark:bg-slate-950">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
@@ -92,7 +92,7 @@ export function TableQrDialog({
           </Button>
         </div>
 
-        <div className="mt-4 rounded-lg border border-border bg-background p-4">
+        <div className="mt-4 border-y border-gray-200 py-4 dark:border-slate-800">
           {qrDataUrl ? (
             <Image
               alt={`QR code ${table.name}`}
@@ -103,7 +103,7 @@ export function TableQrDialog({
               src={qrDataUrl}
             />
           ) : (
-            <div className="flex aspect-square w-full items-center justify-center rounded-md border border-dashed border-border bg-muted text-sm text-muted-foreground">
+            <div className="flex aspect-square w-full items-center justify-center border-y border-dashed border-gray-200 text-sm text-muted-foreground dark:border-slate-800">
               {error ?? "Dang tao QR code..."}
             </div>
           )}

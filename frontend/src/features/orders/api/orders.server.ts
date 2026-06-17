@@ -39,9 +39,3 @@ export function getNewOrders({ token }: AuthenticatedRequest) {
   });
 }
 
-export function getKitchenOrders({ token }: AuthenticatedRequest) {
-  return serverApiFetch<Order[]>(endpoints.orders.kitchen, {
-    cache: "no-store",
-    token,
-  });
-}
