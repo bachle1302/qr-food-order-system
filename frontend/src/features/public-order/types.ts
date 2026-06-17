@@ -13,8 +13,27 @@ export type TableQrInfo = {
 
 export type CreateQrOrderPayload = {
   qrToken: string;
+  customerSessionId?: string;
   items: PublicOrderDraftItem[];
   note?: string;
+};
+
+export type CustomerCheckInRequest = {
+  qrToken: string;
+  name: string;
+  phone?: string;
+};
+
+export type CustomerSession = {
+  sessionId: string;
+  customerId: string;
+  customerName: string;
+  customerPhone?: string | null;
+  tableId: string;
+  tableName: string;
+  qrToken: string;
+  isNewCustomer: boolean;
+  startedAt: string;
 };
 
 export type OrderItemResponse = {
@@ -28,6 +47,9 @@ export type OrderItemResponse = {
 export type OrderResponse = {
   id: string;
   tableId: string;
+  customerSessionId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
   items: OrderItemResponse[];
   totalPrice: number;
   finalPrice: number;

@@ -19,6 +19,9 @@ export type OrderItem = {
 export type Order = {
   id: string;
   tableId: string;
+  customerSessionId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
   items: OrderItem[];
   totalPrice: number;
   finalPrice: number;

@@ -3,7 +3,7 @@ export type AdminTable = {
   name: string;
   seats: number;
   available: boolean;
-  qrToken?: string;
+  qrToken: string | null;
 };
 
 export type TablePayload = {

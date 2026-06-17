@@ -47,7 +47,7 @@ const EMPTY_FORM: FormState = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập.";
     }
     return error.message;
   }
@@ -56,7 +56,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Khong the xu ly yeu cau quan ly ma giam gia.";
+  return "Không thể xử lý yêu cầu quản lý mã giảm giá.";
 }
 
 function formatCurrency(value: number) {
@@ -69,7 +69,7 @@ function formatCurrency(value: number) {
 
 function formatDate(value: string) {
   if (!value) {
-    return "Chua co ngay";
+    return "Chưa có ngày";
   }
 
   return new Intl.DateTimeFormat("vi-VN", {
@@ -104,7 +104,7 @@ function toPayload(form: FormState): DiscountPayload {
   const endDate = normalizeDateTime(form.endDate);
 
   if (!code) {
-    throw new Error("Code khong duoc de trong.");
+    throw new Error("Mã giảm giá không được để trống.");
   }
 
   if (
@@ -132,7 +132,7 @@ function toPayload(form: FormState): DiscountPayload {
   }
 
   if (new Date(startDate).getTime() > new Date(endDate).getTime()) {
-    throw new Error("startDate phai nho hon hoac bang endDate.");
+    throw new Error("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.");
   }
 
   return {
@@ -238,7 +238,7 @@ export function AdminDiscountsPage() {
     event.preventDefault();
 
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -253,7 +253,7 @@ export function AdminDiscountsPage() {
         : await createDiscount(payload, token);
 
       setDiscounts((current) => upsertDiscount(current, saved));
-      setNotice(form.id ? "Da cap nhat ma giam gia." : "Da tao ma giam gia.");
+      setNotice(form.id ? "Đã cập nhật mã giảm giá." : "Đã tạo mã giảm giá.");
       resetForm();
     } catch (submitError) {
       setError(getErrorMessage(submitError));
@@ -264,7 +264,7 @@ export function AdminDiscountsPage() {
 
   async function handleSearchByCode() {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -281,7 +281,7 @@ export function AdminDiscountsPage() {
     try {
       const found = await getDiscountByCode(code, token);
       setDiscounts((current) => upsertDiscount(current, found));
-      setNotice("Da tim thay ma giam gia.");
+      setNotice("Đã tìm thấy mã giảm giá.");
     } catch (searchError) {
       setError(getErrorMessage(searchError));
     } finally {
@@ -291,11 +291,11 @@ export function AdminDiscountsPage() {
 
   async function handleDelete(discountId: string) {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
-    if (!window.confirm("Xoa ma giam gia nay?")) {
+    if (!window.confirm("Xóa mã giảm giá này?")) {
       return;
     }
 
@@ -311,7 +311,7 @@ export function AdminDiscountsPage() {
       if (form.id === discountId) {
         resetForm();
       }
-      setNotice("Da xoa ma giam gia.");
+      setNotice("Đã xóa mã giảm giá.");
     } catch (deleteError) {
       setError(getErrorMessage(deleteError));
     } finally {
@@ -323,11 +323,11 @@ export function AdminDiscountsPage() {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan ADMIN de quan ly ma giam gia."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản ADMIN để quản lý mã giảm giá."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -339,16 +339,16 @@ export function AdminDiscountsPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {isEditing ? "Sua ma giam gia" : "Tao ma giam gia moi"}
+              {isEditing ? "Sửa mã giảm giá" : "Tạo mã giảm giá mới"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Task nay chi CRUD discount, khong tich hop vao order flow.
+              Màn này chỉ quản lý mã giảm giá, chưa tích hợp vào luồng đặt món.
             </p>
           </div>
           {isEditing ? (
             <Button onClick={resetForm} type="button" variant="outline">
               <X />
-              Huy sua
+              Hủy sửa
             </Button>
           ) : null}
         </div>
@@ -412,14 +412,14 @@ export function AdminDiscountsPage() {
                   description: event.target.value,
                 }))
               }
-              placeholder="Mo ta ma giam gia"
+              placeholder="Mô tả mã giảm giá"
               value={form.description}
             />
           </label>
 
           <div className="grid gap-3 lg:grid-cols-2">
             <label className="grid gap-1 text-sm text-foreground">
-              Min order amount
+              Giá trị đơn tối thiểu
               <input
                 className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 min={0}
@@ -498,7 +498,7 @@ export function AdminDiscountsPage() {
             </label>
             <Button disabled={isSubmitting} type="submit">
               {isEditing ? <Save /> : <Plus />}
-              {isEditing ? "Luu" : "Tao ma"}
+              {isEditing ? "Lưu" : "Tạo mã"}
             </Button>
           </div>
         </form>
@@ -542,13 +542,13 @@ export function AdminDiscountsPage() {
 
       {error ? <ErrorState message={error} /> : null}
       {isLoading ? (
-        <LoadingState label="Dang tai danh sach ma giam gia..." />
+        <LoadingState label="Đang tải danh sách mã giảm giá..." />
       ) : null}
 
       {!isLoading && visibleDiscounts.length === 0 ? (
         <EmptyState
-          title="Chua co ma giam gia"
-          description="Khong co ma nao phu hop voi dieu kien hien tai."
+          title="Chưa có mã giảm giá"
+          description="Không có mã nào phù hợp với điều kiện hiện tại."
         />
       ) : null}
 
@@ -569,7 +569,7 @@ export function AdminDiscountsPage() {
                         {discount.code}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {discount.description || "Chua co mo ta."}
+                        {discount.description || "Chưa có mô tả."}
                       </p>
                     </div>
                     <span className="w-fit rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground">
@@ -591,7 +591,7 @@ export function AdminDiscountsPage() {
                       </span>
                     </p>
                     <p className="text-muted-foreground">
-                      Min order:{" "}
+                      Đơn tối thiểu:{" "}
                       <span className="text-foreground">
                         {formatCurrency(discount.minOrderAmount)}
                       </span>
@@ -623,7 +623,7 @@ export function AdminDiscountsPage() {
                     type="button"
                     variant="outline"
                   >
-                    Sua
+                    Sửa
                   </Button>
                   <Button
                     disabled={isActive}
@@ -632,7 +632,7 @@ export function AdminDiscountsPage() {
                     variant="destructive"
                   >
                     <Trash2 />
-                    Xoa
+                    Xóa
                   </Button>
                 </div>
               </div>

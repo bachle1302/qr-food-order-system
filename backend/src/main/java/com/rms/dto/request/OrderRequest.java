@@ -8,6 +8,7 @@ import java.util.List;
 public class OrderRequest {
     private String tableId;
     private String qrToken;
+    private String customerSessionId;
     private List<OrderItemRequest> items;
     private String note;
 }

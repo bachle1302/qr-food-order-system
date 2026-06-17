@@ -4,6 +4,6 @@ import type { TableQrInfo } from "../types";
 
 export function getTableByQrToken(qrToken: string) {
   return serverApiFetch<TableQrInfo>(endpoints.tables.byQrToken(qrToken), {
-    next: { revalidate: 60, tags: [`table-qr-${qrToken}`] },
+    cache: "no-store",
   });
 }

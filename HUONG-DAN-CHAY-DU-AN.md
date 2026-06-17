@@ -1485,9 +1485,10 @@ Frontend Next.js dung bien:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
+SERVER_API_BASE_URL=http://backend:8017
 ```
 
-Luu y: URL nay danh cho browser cua nguoi dung, nen khi chay Docker Compose local phai la `http://localhost:8017`, khong phai `http://backend:8017`. Backend container van ket noi MongoDB bang hostname service `mongodb`.
+Luu y: `NEXT_PUBLIC_API_BASE_URL` danh cho browser cua nguoi dung, nen khi chay Docker Compose local phai la `http://localhost:8017`, khong phai `http://backend:8017`. `SERVER_API_BASE_URL` danh cho Next.js server-side fetch ben trong container frontend, nen dung `http://backend:8017`. Backend container van ket noi MongoDB bang hostname service `mongodb`.
 
 Test nhanh flow fullstack:
 

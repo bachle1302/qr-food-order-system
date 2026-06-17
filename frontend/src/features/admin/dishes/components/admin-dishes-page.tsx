@@ -43,7 +43,7 @@ const EMPTY_FORM: FormState = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập.";
     }
     return error.message;
   }
@@ -52,7 +52,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Khong the xu ly yeu cau quan ly mon an.";
+  return "Không thể xử lý yêu cầu quản lý món ăn.";
 }
 
 function formatCurrency(value: number) {
@@ -69,15 +69,15 @@ function toPayload(form: FormState): DishPayload {
   const categoryId = form.categoryId.trim();
 
   if (!name) {
-    throw new Error("Ten mon khong duoc de trong.");
+    throw new Error("Tên món không được để trống.");
   }
 
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("Gia mon phai lon hon 0.");
+    throw new Error("Giá món phải lớn hơn 0.");
   }
 
   if (!categoryId) {
-    throw new Error("Vui long chon danh muc.");
+    throw new Error("Vui lòng chọn danh mục.");
   }
 
   return {
@@ -202,7 +202,7 @@ export function AdminDishesPage() {
     event.preventDefault();
 
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -217,7 +217,7 @@ export function AdminDishesPage() {
         : await createDish(payload, token);
 
       setDishes((current) => upsertDish(current, saved));
-      setNotice(form.id ? "Da cap nhat mon an." : "Da tao mon an moi.");
+      setNotice(form.id ? "Đã cập nhật món ăn." : "Đã tạo món ăn mới.");
       resetForm();
     } catch (submitError) {
       setError(getErrorMessage(submitError));
@@ -228,11 +228,11 @@ export function AdminDishesPage() {
 
   async function handleDelete(dishId: string) {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
-    if (!window.confirm("Xoa mon an nay?")) {
+    if (!window.confirm("Xóa món ăn này?")) {
       return;
     }
 
@@ -246,7 +246,7 @@ export function AdminDishesPage() {
       if (form.id === dishId) {
         resetForm();
       }
-      setNotice("Da xoa mon an.");
+      setNotice("Đã xóa món ăn.");
     } catch (deleteError) {
       setError(getErrorMessage(deleteError));
     } finally {
@@ -258,11 +258,11 @@ export function AdminDishesPage() {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan ADMIN de quan ly mon an."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản ADMIN để quản lý món ăn."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -272,8 +272,8 @@ export function AdminDishesPage() {
     <div className="space-y-6">
       {categories.length === 0 && !isLoading ? (
         <ErrorState
-          title="Can tao danh muc truoc"
-          message="Chua co category nao de gan mon an. Hay tao danh muc trong Admin Categories truoc."
+          title="Cần tạo danh mục trước"
+          message="Chưa có danh mục nào để gán món ăn. Hãy tạo danh mục trước."
         />
       ) : null}
 
@@ -281,16 +281,16 @@ export function AdminDishesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {isEditing ? "Sua mon an" : "Tao mon an moi"}
+              {isEditing ? "Sửa món ăn" : "Tạo món ăn mới"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Dung imageUrl dang chuoi, khong upload anh trong man nay.
+              Dùng imageUrl dạng chuỗi, chưa upload ảnh trực tiếp trong màn này.
             </p>
           </div>
           {isEditing ? (
             <Button onClick={resetForm} type="button" variant="outline">
               <X />
-              Huy sua
+              Hủy sửa
             </Button>
           ) : null}
         </div>
@@ -298,7 +298,7 @@ export function AdminDishesPage() {
         <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
           <div className="grid gap-3 lg:grid-cols-3">
             <label className="grid gap-1 text-sm text-foreground">
-              Ten mon
+              Tên món
               <input
                 className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onChange={(event) =>
@@ -339,7 +339,7 @@ export function AdminDishesPage() {
                 }
                 value={form.categoryId}
               >
-                <option value="">Chon danh muc</option>
+                <option value="">Chọn danh mục</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -351,7 +351,7 @@ export function AdminDishesPage() {
 
           <div className="grid gap-3 lg:grid-cols-2">
             <label className="grid gap-1 text-sm text-foreground">
-              Mo ta
+              Mô tả
               <input
                 className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onChange={(event) =>
@@ -360,7 +360,7 @@ export function AdminDishesPage() {
                     description: event.target.value,
                   }))
                 }
-                placeholder="Mo ta ngan ve mon an"
+                placeholder="Mô tả ngắn về món ăn"
                 value={form.description}
               />
             </label>
@@ -400,7 +400,7 @@ export function AdminDishesPage() {
               type="submit"
             >
               {isEditing ? <Save /> : <Plus />}
-              {isEditing ? "Luu" : "Tao mon"}
+              {isEditing ? "Lưu" : "Tạo món"}
             </Button>
           </div>
         </form>
@@ -409,13 +409,13 @@ export function AdminDishesPage() {
       <section className="rounded-lg border border-border bg-card p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-1 text-sm text-foreground">
-            Loc theo danh muc
+            Lọc theo danh mục
             <select
               className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) => setCategoryFilter(event.target.value)}
               value={categoryFilter}
             >
-              <option value="ALL">Tat ca danh muc</option>
+              <option value="ALL">Tất cả danh mục</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -424,7 +424,7 @@ export function AdminDishesPage() {
             </select>
           </label>
           <label className="grid gap-1 text-sm text-foreground">
-            Loc theo available
+            Lọc theo trạng thái bán
             <select
               className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) =>
@@ -432,7 +432,7 @@ export function AdminDishesPage() {
               }
               value={availableFilter}
             >
-              <option value="ALL">Tat ca trang thai</option>
+              <option value="ALL">Tất cả trạng thái</option>
               <option value="AVAILABLE">Available</option>
               <option value="UNAVAILABLE">Unavailable</option>
             </select>
@@ -447,12 +447,12 @@ export function AdminDishesPage() {
       ) : null}
 
       {error ? <ErrorState message={error} /> : null}
-      {isLoading ? <LoadingState label="Dang tai danh sach mon an..." /> : null}
+      {isLoading ? <LoadingState label="Đang tải danh sách món ăn..." /> : null}
 
       {!isLoading && visibleDishes.length === 0 ? (
         <EmptyState
-          title="Chua co mon an"
-          description="Khong co mon nao phu hop bo loc hien tai."
+          title="Chưa có món ăn"
+          description="Không có món nào phù hợp bộ lọc hiện tại."
         />
       ) : null}
 
@@ -478,7 +478,7 @@ export function AdminDishesPage() {
                     />
                   ) : (
                     <div className="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                      Chua co anh
+                      Chưa có ảnh
                     </div>
                   )}
                 </div>
@@ -499,7 +499,7 @@ export function AdminDishesPage() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {dish.description || "Chua co mo ta."}
+                      {dish.description || "Chưa có mô tả."}
                     </p>
                     <p className="font-medium text-foreground">
                       {formatCurrency(dish.price)}
@@ -512,7 +512,7 @@ export function AdminDishesPage() {
                       type="button"
                       variant="outline"
                     >
-                      Sua
+                      Sửa
                     </Button>
                     <Button
                       disabled={isActive}
@@ -521,7 +521,7 @@ export function AdminDishesPage() {
                       variant="destructive"
                     >
                       <Trash2 />
-                      Xoa
+                      Xóa
                     </Button>
                   </div>
                 </div>

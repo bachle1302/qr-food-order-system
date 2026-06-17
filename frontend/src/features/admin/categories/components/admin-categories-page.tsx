@@ -31,7 +31,7 @@ const EMPTY_FORM: FormState = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập.";
     }
     return error.message;
   }
@@ -40,14 +40,14 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Khong the xu ly yeu cau quan ly danh muc.";
+  return "Không thể xử lý yêu cầu quản lý danh mục.";
 }
 
 function toPayload(form: FormState): CategoryPayload {
   const name = form.name.trim();
 
   if (!name) {
-    throw new Error("Ten danh muc khong duoc de trong.");
+    throw new Error("Tên danh mục không được để trống.");
   }
 
   return {
@@ -136,7 +136,7 @@ export function AdminCategoriesPage() {
     event.preventDefault();
 
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -151,7 +151,7 @@ export function AdminCategoriesPage() {
         : await createCategory(payload, token);
 
       setCategories((current) => upsertCategory(current, saved));
-      setNotice(form.id ? "Da cap nhat danh muc." : "Da tao danh muc moi.");
+      setNotice(form.id ? "Đã cập nhật danh mục." : "Đã tạo danh mục mới.");
       resetForm();
     } catch (submitError) {
       setError(getErrorMessage(submitError));
@@ -162,11 +162,11 @@ export function AdminCategoriesPage() {
 
   async function handleDelete(categoryId: string) {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
-    if (!window.confirm("Xoa danh muc nay?")) {
+    if (!window.confirm("Xóa danh mục này?")) {
       return;
     }
 
@@ -182,7 +182,7 @@ export function AdminCategoriesPage() {
       if (form.id === categoryId) {
         resetForm();
       }
-      setNotice("Da xoa danh muc.");
+      setNotice("Đã xóa danh mục.");
     } catch (deleteError) {
       setError(getErrorMessage(deleteError));
     } finally {
@@ -194,11 +194,11 @@ export function AdminCategoriesPage() {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan ADMIN de quan ly danh muc."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản ADMIN để quản lý danh mục."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -210,16 +210,16 @@ export function AdminCategoriesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {isEditing ? "Sua danh muc" : "Tao danh muc moi"}
+              {isEditing ? "Sửa danh mục" : "Tạo danh mục mới"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Quan ly nhom mon an hien thi trong menu public.
+              Quản lý nhóm món ăn hiển thị trong menu public.
             </p>
           </div>
           {isEditing ? (
             <Button onClick={resetForm} type="button" variant="outline">
               <X />
-              Huy sua
+              Hủy sửa
             </Button>
           ) : null}
         </div>
@@ -229,7 +229,7 @@ export function AdminCategoriesPage() {
           onSubmit={handleSubmit}
         >
           <label className="grid gap-1 text-sm text-foreground">
-            Ten danh muc
+            Tên danh mục
             <input
               className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) =>
@@ -238,12 +238,12 @@ export function AdminCategoriesPage() {
                   name: event.target.value,
                 }))
               }
-              placeholder="Mon chinh"
+              placeholder="Món chính"
               value={form.name}
             />
           </label>
           <label className="grid gap-1 text-sm text-foreground">
-            Mo ta
+            Mô tả
             <input
               className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) =>
@@ -252,14 +252,14 @@ export function AdminCategoriesPage() {
                   description: event.target.value,
                 }))
               }
-              placeholder="Cac mon an chinh trong menu"
+              placeholder="Các món ăn chính trong menu"
               value={form.description}
             />
           </label>
           <div className="flex items-end">
             <Button disabled={isSubmitting} type="submit">
               {isEditing ? <Save /> : <Plus />}
-              {isEditing ? "Luu" : "Tao danh muc"}
+              {isEditing ? "Lưu" : "Tạo danh mục"}
             </Button>
           </div>
         </form>
@@ -273,13 +273,13 @@ export function AdminCategoriesPage() {
 
       {error ? <ErrorState message={error} /> : null}
       {isLoading ? (
-        <LoadingState label="Dang tai danh sach danh muc..." />
+        <LoadingState label="Đang tải danh sách danh mục..." />
       ) : null}
 
       {!isLoading && sortedCategories.length === 0 ? (
         <EmptyState
-          title="Chua co danh muc"
-          description="Tao danh muc dau tien de sap xep menu mon an."
+          title="Chưa có danh mục"
+          description="Tạo danh mục đầu tiên để sắp xếp menu món ăn."
         />
       ) : null}
 
@@ -298,7 +298,7 @@ export function AdminCategoriesPage() {
                     {category.name}
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {category.description || "Chua co mo ta."}
+                    {category.description || "Chưa có mô tả."}
                   </p>
                 </div>
 
@@ -308,7 +308,7 @@ export function AdminCategoriesPage() {
                     type="button"
                     variant="outline"
                   >
-                    Sua
+                    Sửa
                   </Button>
                   <Button
                     disabled={isActive}
@@ -317,7 +317,7 @@ export function AdminCategoriesPage() {
                     variant="destructive"
                   >
                     <Trash2 />
-                    Xoa
+                    Xóa
                   </Button>
                 </div>
               </div>

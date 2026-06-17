@@ -37,57 +37,57 @@ const OPERATING_STATUSES: OrderStatus[] = [
 ];
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  NEW: "Moi",
-  CONFIRMED: "Da xac nhan",
-  PREPARING: "Dang che bien",
-  READY: "San sang",
-  SERVED: "Da phuc vu",
-  PAID: "Da thanh toan",
-  CANCELLED: "Da huy",
-  COMPLETED: "Hoan tat",
+  NEW: "Mới",
+  CONFIRMED: "Đã xác nhận",
+  PREPARING: "Đang chế biến",
+  READY: "Sẵn sàng",
+  SERVED: "Đã phục vụ",
+  PAID: "Đã thanh toán",
+  CANCELLED: "Đã hủy",
+  COMPLETED: "Hoàn tất",
 };
 
 const QUICK_LINKS = [
   {
     href: "/admin/tables",
-    label: "Quan ly ban",
-    description: "Ban an va QR token",
+    label: "Quản lý bàn",
+    description: "Bàn ăn và QR token",
     icon: LayoutDashboard,
   },
   {
     href: "/admin/categories",
-    label: "Quan ly danh muc",
-    description: "Nhom mon trong menu",
+    label: "Quản lý danh mục",
+    description: "Nhóm món trong menu",
     icon: Tags,
   },
   {
     href: "/admin/dishes",
-    label: "Quan ly mon an",
-    description: "Gia, anh va trang thai mon",
+    label: "Quản lý món ăn",
+    description: "Giá, ảnh và trạng thái món",
     icon: Utensils,
   },
   {
     href: "/admin/users",
-    label: "Quan ly nhan vien",
-    description: "Tai khoan ADMIN/STAFF",
+    label: "Quản lý nhân viên",
+    description: "Tài khoản ADMIN/STAFF",
     icon: Users,
   },
   {
     href: "/admin/discounts",
-    label: "Quan ly ma giam gia",
-    description: "Code, han dung va gioi han",
+    label: "Quản lý mã giảm giá",
+    description: "Mã, hạn dùng và giới hạn",
     icon: TicketPercent,
   },
   {
     href: "/staff/orders",
-    label: "Staff Orders",
-    description: "Xu ly don theo trang thai",
+    label: "Quản lý đơn hàng",
+    description: "Xử lý đơn theo trạng thái",
     icon: ClipboardList,
   },
   {
     href: "/staff/kitchen",
-    label: "Kitchen",
-    description: "Hang doi bep",
+    label: "Màn bếp",
+    description: "Hàng đợi bếp",
     icon: ChefHat,
   },
 ];
@@ -105,7 +105,7 @@ function getMonthInputValue(date: string) {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap dashboard.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập dashboard.";
     }
     return error.message;
   }
@@ -114,7 +114,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Khong the tai du lieu dashboard.";
+  return "Không thể tải dữ liệu dashboard.";
 }
 
 function formatCurrency(value: number) {
@@ -188,7 +188,7 @@ export function AdminDashboardPage() {
     setError(null);
 
     if (!date) {
-      setError("Vui long chon ngay thong ke hop le.");
+      setError("Vui lòng chọn ngày thống kê hợp lệ.");
       setIsLoading(false);
       return;
     }
@@ -243,18 +243,18 @@ export function AdminDashboardPage() {
   }, [loadDashboard, selectedDate]);
 
   if (token === undefined) {
-    return <LoadingState label="Dang kiem tra phien dang nhap..." />;
+    return <LoadingState label="Đang kiểm tra phiên đăng nhập..." />;
   }
 
   if (!token) {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan ADMIN de xem dashboard doanh thu."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản ADMIN để xem dashboard doanh thu."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -266,16 +266,16 @@ export function AdminDashboardPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Tong quan quan tri
+              Tổng quan quản trị
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              So lieu lay tu API order/revenue that, khong dung mock data.
+              Số liệu lấy từ API đơn hàng và doanh thu thật.
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="grid gap-1 text-sm text-foreground">
-              Ngay thong ke
+              Ngày thống kê
               <input
                 className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onChange={(event) => setSelectedDate(event.target.value)}
@@ -293,36 +293,36 @@ export function AdminDashboardPage() {
               variant="outline"
             >
               <CalendarDays />
-              Tai lai
+              Tải lại
             </Button>
           </div>
         </div>
       </section>
 
       {error ? <ErrorState message={error} /> : null}
-      {isLoading ? <LoadingState label="Dang tai dashboard..." /> : null}
+      {isLoading ? <LoadingState label="Đang tải dashboard..." /> : null}
 
       {!isLoading && !error && summary ? (
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              description={`Tu summary ngay ${summary.date}`}
-              label="Tong don hom nay"
+              description={`Từ tổng hợp ngày ${summary.date}`}
+              label="Tổng đơn hôm nay"
               value={formatNumber(summary.totalOrders)}
             />
             <StatCard
-              description="Tu API /api/orders/revenue/daily"
-              label="Doanh thu hom nay"
+              description="Từ API doanh thu theo ngày"
+              label="Doanh thu hôm nay"
               value={formatCurrency(dailyRevenue ?? summary.totalRevenue)}
             />
             <StatCard
-              description="Tinh tu GET /api/orders/manage"
-              label="Don dang xu ly"
+              description="Tính từ danh sách đơn quản lý"
+              label="Đơn đang xử lý"
               value={formatNumber(processingOrders)}
             />
             <StatCard
-              description="Tu DailySummaryResponse"
-              label="Hoan tat / huy"
+              description="Từ tổng hợp đơn theo ngày"
+              label="Hoàn tất / hủy"
               value={`${formatNumber(summary.completedOrders)} / ${formatNumber(
                 summary.cancelledOrders,
               )}`}
@@ -337,10 +337,10 @@ export function AdminDashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">
-                    Doanh thu thang
+                    Doanh thu tháng
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Lay tu API /api/orders/revenue/monthly voi thang{" "}
+                    Lấy từ API doanh thu theo tháng{" "}
                     {getMonthInputValue(selectedDate)}.
                   </p>
                 </div>
@@ -352,23 +352,23 @@ export function AdminDashboardPage() {
 
             <article className="rounded-lg border border-border bg-card p-4">
               <h3 className="font-semibold text-foreground">
-                Summary ngay
+                Tổng hợp ngày
               </h3>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Dang cho/xu ly</dt>
+                  <dt className="text-muted-foreground">Đang chờ/xử lý</dt>
                   <dd className="font-medium text-foreground">
                     {formatNumber(summary.pendingOrders)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Gia tri TB</dt>
+                  <dt className="text-muted-foreground">Giá trị trung bình</dt>
                   <dd className="font-medium text-foreground">
                     {formatCurrency(summary.averageOrderValue)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Order ids</dt>
+                  <dt className="text-muted-foreground">Số mã đơn</dt>
                   <dd className="font-medium text-foreground">
                     {formatNumber(summary.orderIds.length)}
                   </dd>
@@ -379,8 +379,8 @@ export function AdminDashboardPage() {
 
           {hasNoOrdersForDate ? (
             <EmptyState
-              title="Chua co order trong ngay nay"
-              description="Doi ngay thong ke hoac kiem tra lai khi co order moi."
+              title="Chưa có đơn trong ngày này"
+              description="Đổi ngày thống kê hoặc kiểm tra lại khi có đơn mới."
             />
           ) : null}
         </>
@@ -390,11 +390,10 @@ export function AdminDashboardPage() {
         <section className="rounded-lg border border-border bg-card p-4">
           <div className="flex flex-col gap-1">
             <h3 className="font-semibold text-foreground">
-              Don hang theo trang thai
+              Đơn hàng theo trạng thái
             </h3>
             <p className="text-sm text-muted-foreground">
-              Cac con so nay tinh client-side tu data that cua GET
-              /api/orders/manage.
+              Các số liệu này được tính từ dữ liệu đơn hàng thật.
             </p>
           </div>
 
@@ -417,7 +416,7 @@ export function AdminDashboardPage() {
       ) : null}
 
       <section className="rounded-lg border border-border bg-card p-4">
-        <h3 className="font-semibold text-foreground">Loi tat van hanh</h3>
+        <h3 className="font-semibold text-foreground">Lối tắt vận hành</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {QUICK_LINKS.map((item) => {
             const Icon = item.icon;

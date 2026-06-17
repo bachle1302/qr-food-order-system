@@ -3,10 +3,17 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getOrderDishes } from "@/features/orders/api/dishes.client";
 import { getKitchenOrders, updateOrderStatus } from "@/features/orders/api/orders.client";
+import { getOrderTables } from "@/features/orders/api/tables.client";
 import { OrderCard } from "@/features/orders/components/order-card";
 import { useOrderEvents } from "@/features/orders/hooks/use-order-events";
 import type { Order, OrderStatus } from "@/features/orders/types";
+import {
+  ORDER_STATUS_LABELS,
+  type DishNameMap,
+  type TableNameMap,
+} from "@/features/orders/lib/order-ui";
 import { ApiError } from "@/shared/api/error";
 import { getAccessToken } from "@/shared/auth/token-storage";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -24,14 +31,14 @@ const KITCHEN_ACTIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập.";
     }
     return error.message;
   }
   if (error instanceof Error) {
     return error.message;
   }
-  return "Khong the tai danh sach bep.";
+  return "Không thể tải danh sách bếp.";
 }
 
 function upsertKitchenOrder(orders: Order[], order: Order) {
@@ -49,6 +56,8 @@ function upsertKitchenOrder(orders: Order[], order: Order) {
 export function KitchenDashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [dishNameById, setDishNameById] = useState<DishNameMap>({});
+  const [tableNameById, setTableNameById] = useState<TableNameMap>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -57,6 +66,20 @@ export function KitchenDashboard() {
     setError(null);
     const response = await getKitchenOrders(accessToken);
     setOrders(response);
+  }, []);
+
+  const loadDishes = useCallback(async (accessToken: string) => {
+    const dishes = await getOrderDishes(accessToken);
+    setDishNameById(
+      Object.fromEntries(dishes.map((dish) => [dish.id, dish.name])),
+    );
+  }, []);
+
+  const loadTables = useCallback(async (accessToken: string) => {
+    const tables = await getOrderTables(accessToken);
+    setTableNameById(
+      Object.fromEntries(tables.map((table) => [table.id, table.name])),
+    );
   }, []);
 
   useEffect(() => {
@@ -71,7 +94,11 @@ export function KitchenDashboard() {
 
       setIsLoading(true);
       try {
-        await loadOrders(accessToken);
+        await Promise.all([
+          loadOrders(accessToken),
+          loadDishes(accessToken),
+          loadTables(accessToken),
+        ]);
       } catch (loadError) {
         setError(getErrorMessage(loadError));
       } finally {
@@ -80,7 +107,7 @@ export function KitchenDashboard() {
     }
 
     load();
-  }, [loadOrders]);
+  }, [loadDishes, loadOrders, loadTables]);
 
   const handleRealtimeOrder = useCallback((event: { order: Order }) => {
     setOrders((current) => upsertKitchenOrder(current, event.order));
@@ -103,7 +130,7 @@ export function KitchenDashboard() {
 
   async function handleUpdateStatus(orderId: string, status: OrderStatus) {
     if (!token) {
-      setError("Vui long dang nhap de cap nhat order.");
+      setError("Vui lòng đăng nhập để cập nhật đơn hàng.");
       return;
     }
 
@@ -124,11 +151,11 @@ export function KitchenDashboard() {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan STAFF hoac ADMIN de xem man bep."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản STAFF hoặc ADMIN để xem màn bếp."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -139,10 +166,12 @@ export function KitchenDashboard() {
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">Realtime</p>
-          <p className="font-medium text-foreground">SSE: {sseState}</p>
+          <p className="font-medium text-foreground">
+            Kết nối realtime: {sseState}
+          </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/staff/orders">Open staff orders</Link>
+          <Link href="/staff/orders">Mở quản lý đơn</Link>
         </Button>
       </div>
 
@@ -155,19 +184,23 @@ export function KitchenDashboard() {
             className="rounded-lg border border-border bg-card p-4"
             key={group.status}
           >
-            <h2 className="font-semibold text-foreground">{group.status}</h2>
+            <h2 className="font-semibold text-foreground">
+              {ORDER_STATUS_LABELS[group.status]}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {group.orders.length} order
+              {group.orders.length} đơn
             </p>
             <div className="mt-4 space-y-4">
               {group.orders.length === 0 ? (
                 <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-                  Khong co order.
+                  Không có đơn.
                 </div>
               ) : (
                 group.orders.map((order) => (
                   <OrderCard
                     actions={KITCHEN_ACTIONS[order.status] ?? []}
+                    dishNameById={dishNameById}
+                    tableNameById={tableNameById}
                     isUpdating={updatingOrderId === order.id}
                     key={order.id}
                     onUpdateStatus={handleUpdateStatus}

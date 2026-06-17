@@ -10,5 +10,6 @@ public interface OrderRepository extends MongoRepository<Order, String> {
     List<Order> findByTableId(String tableId);
     List<Order> findByStatusOrderByCreatedAtAsc(String status);
     List<Order> findByStatusInOrderByCreatedAtAsc(List<String> statuses);
+    List<Order> findByCustomerSessionIdOrderByCreatedAtDesc(String customerSessionId);
     List<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { Copy, Eye, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
 import { getAccessToken } from "@/shared/auth/token-storage";
@@ -16,6 +16,7 @@ import {
   regenerateQrToken,
   updateTable,
 } from "../api/tables.client";
+import { TableQrDialog } from "./table-qr-dialog";
 import type { AdminTable, TablePayload } from "../types";
 
 type FormState = {
@@ -32,7 +33,7 @@ const EMPTY_FORM: FormState = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập.";
     }
     return error.message;
   }
@@ -41,7 +42,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Khong the xu ly yeu cau quan ly ban.";
+  return "Không thể xử lý yêu cầu quản lý bàn.";
 }
 
 function toPayload(form: FormState): TablePayload {
@@ -49,7 +50,7 @@ function toPayload(form: FormState): TablePayload {
   const seats = Number(form.seats);
 
   if (!name) {
-    throw new Error("Ten ban khong duoc de trong.");
+    throw new Error("Tên bàn không được để trống.");
   }
 
   if (!Number.isInteger(seats) || seats <= 0) {
@@ -80,6 +81,10 @@ export function AdminTablesPage() {
   const [token, setToken] = useState<string | null>(null);
   const [tables, setTables] = useState<AdminTable[]>([]);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [qrDialog, setQrDialog] = useState<{
+    table: AdminTable;
+    qrUrl: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
@@ -140,7 +145,7 @@ export function AdminTablesPage() {
     event.preventDefault();
 
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -155,7 +160,7 @@ export function AdminTablesPage() {
         : await createTable(payload, token);
 
       setTables((current) => upsertTable(current, saved));
-      setNotice(form.id ? "Da cap nhat ban." : "Da tao ban moi.");
+      setNotice(form.id ? "Đã cập nhật bàn." : "Đã tạo bàn mới.");
       resetForm();
     } catch (submitError) {
       setError(getErrorMessage(submitError));
@@ -166,7 +171,7 @@ export function AdminTablesPage() {
 
   async function handleRegenerate(tableId: string) {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -183,7 +188,7 @@ export function AdminTablesPage() {
             : table,
         ),
       );
-      setNotice("Da regenerate QR token.");
+      setNotice("Đã tạo lại QR token.");
     } catch (regenerateError) {
       setError(getErrorMessage(regenerateError));
     } finally {
@@ -193,11 +198,11 @@ export function AdminTablesPage() {
 
   async function handleDelete(tableId: string) {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
-    if (!window.confirm("Xoa ban nay?")) {
+    if (!window.confirm("Xóa bàn này?")) {
       return;
     }
 
@@ -211,7 +216,7 @@ export function AdminTablesPage() {
       if (form.id === tableId) {
         resetForm();
       }
-      setNotice("Da xoa ban.");
+      setNotice("Đã xóa bàn.");
     } catch (deleteError) {
       setError(getErrorMessage(deleteError));
     } finally {
@@ -219,27 +224,41 @@ export function AdminTablesPage() {
     }
   }
 
-  async function handleCopy(qrToken?: string) {
+  async function handleCopy(qrToken?: string | null) {
     if (!qrToken) {
-      setError("Chua co qrToken trong response. Hay regenerate token truoc.");
+      setError("Chưa có QR token. Hãy tạo lại token trước.");
       return;
     }
 
     const qrLink = `${window.location.origin}${buildQrPath(qrToken)}`;
     await window.navigator.clipboard.writeText(qrLink);
-    setNotice("Da copy QR link.");
+    setNotice("Đã sao chép link QR.");
     setError(null);
+  }
+
+  function handleOpenQr(table: AdminTable) {
+    if (!table.qrToken) {
+      setError("Chưa có QR token. Hãy tạo lại token trước.");
+      return;
+    }
+
+    setQrDialog({
+      table,
+      qrUrl: `${window.location.origin}${buildQrPath(table.qrToken)}`,
+    });
+    setError(null);
+    setNotice(null);
   }
 
   if (!token) {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan ADMIN de quan ly ban."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản ADMIN để quản lý bàn."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -251,7 +270,7 @@ export function AdminTablesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {isEditing ? "Sua ban" : "Tao ban moi"}
+              {isEditing ? "Sửa bàn" : "Tạo bàn mới"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Backend hien nhan name va seats; available la trang thai doc.
@@ -260,7 +279,7 @@ export function AdminTablesPage() {
           {isEditing ? (
             <Button onClick={resetForm} type="button" variant="outline">
               <X />
-              Huy sua
+              Hủy sửa
             </Button>
           ) : null}
         </div>
@@ -270,7 +289,7 @@ export function AdminTablesPage() {
           onSubmit={handleSubmit}
         >
           <label className="grid gap-1 text-sm text-foreground">
-            Ten ban
+            Tên bàn
             <input
               className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) =>
@@ -301,7 +320,7 @@ export function AdminTablesPage() {
           <div className="flex items-end">
             <Button disabled={isSubmitting} type="submit">
               {isEditing ? <Save /> : <Plus />}
-              {isEditing ? "Luu" : "Tao ban"}
+              {isEditing ? "Lưu" : "Tạo bàn"}
             </Button>
           </div>
         </form>
@@ -314,12 +333,12 @@ export function AdminTablesPage() {
       ) : null}
 
       {error ? <ErrorState message={error} /> : null}
-      {isLoading ? <LoadingState label="Dang tai danh sach ban..." /> : null}
+      {isLoading ? <LoadingState label="Đang tải danh sách bàn..." /> : null}
 
       {!isLoading && sortedTables.length === 0 ? (
         <EmptyState
-          title="Chua co ban"
-          description="Tao ban moi de bat dau quan ly QR order."
+          title="Chưa có bàn"
+          description="Tạo bàn mới để bắt đầu quản lý đặt món bằng QR."
         />
       ) : null}
 
@@ -349,7 +368,7 @@ export function AdminTablesPage() {
                     <span className="text-muted-foreground">qrToken</span>
                     <code className="break-all rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground">
                       {table.qrToken ??
-                        "Khong co trong TableResponse. Regenerate de lay token moi."}
+                        "Chưa có QR token. Tạo lại để sinh token mới."}
                     </code>
                   </div>
 
@@ -364,7 +383,7 @@ export function AdminTablesPage() {
                       </Link>
                     ) : (
                       <span className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
-                        Chua co QR link de hien thi.
+                        Chưa có QR token
                       </span>
                     )}
                   </div>
@@ -381,6 +400,15 @@ export function AdminTablesPage() {
                     Copy
                   </Button>
                   <Button
+                    disabled={!table.qrToken}
+                    onClick={() => handleOpenQr(table)}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Eye />
+                    Xem QR
+                  </Button>
+                  <Button
                     disabled={isActive}
                     onClick={() => handleRegenerate(table.id)}
                     type="button"
@@ -394,7 +422,7 @@ export function AdminTablesPage() {
                     type="button"
                     variant="outline"
                   >
-                    Sua
+                    Sửa
                   </Button>
                   <Button
                     disabled={isActive}
@@ -403,7 +431,7 @@ export function AdminTablesPage() {
                     variant="destructive"
                   >
                     <Trash2 />
-                    Xoa
+                    Xóa
                   </Button>
                 </div>
               </div>
@@ -411,6 +439,15 @@ export function AdminTablesPage() {
           );
         })}
       </div>
+
+      {qrDialog ? (
+        <TableQrDialog
+          onClose={() => setQrDialog(null)}
+          onCopy={() => handleCopy(qrDialog.table.qrToken ?? undefined)}
+          qrUrl={qrDialog.qrUrl}
+          table={qrDialog.table}
+        />
+      ) : null}
     </div>
   );
 }

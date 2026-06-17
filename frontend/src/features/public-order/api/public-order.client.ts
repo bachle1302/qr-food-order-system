@@ -7,6 +7,7 @@ export function createQrOrder(payload: CreateQrOrderPayload) {
     method: "POST",
     body: {
       qrToken: payload.qrToken,
+      customerSessionId: payload.customerSessionId,
       note: payload.note,
       items: payload.items.map((item) => ({
         dishId: item.dishId,

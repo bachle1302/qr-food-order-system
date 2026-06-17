@@ -42,6 +42,7 @@ public class TableServiceImpl implements TableService {
 
         table.setName(request.getName());
         table.setSeats(request.getSeats());
+        ensureQrToken(table);
 
         tableRepository.save(table);
         return toResponse(table);
@@ -60,6 +61,7 @@ public class TableServiceImpl implements TableService {
         Table table = tableRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found"));
 
+        ensureQrToken(table);
         return toResponse(table);
     }
 
@@ -93,8 +95,18 @@ public class TableServiceImpl implements TableService {
     public List<TableResponse> getAll() {
         return tableRepository.findAll()
                 .stream()
-                .map(this::toResponse)
+                .map(table -> {
+                    ensureQrToken(table);
+                    return toResponse(table);
+                })
                 .toList();
+    }
+
+    private void ensureQrToken(Table table) {
+        if (table.getQrToken() == null || table.getQrToken().isBlank()) {
+            table.setQrToken(generateUniqueQrToken());
+            tableRepository.save(table);
+        }
     }
 
     private TableResponse toResponse(Table table) {
@@ -102,6 +114,7 @@ public class TableServiceImpl implements TableService {
         res.setId(table.getId());
         res.setName(table.getName());
         res.setSeats(table.getSeats());
+        res.setQrToken(table.getQrToken());
         res.setAvailable(table.isAvailable());
         return res;
     }

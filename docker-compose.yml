@@ -33,6 +33,7 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8017}
+        SERVER_API_BASE_URL: ${SERVER_API_BASE_URL:-http://backend:8017}
     container_name: qrfood-frontend
     depends_on:
       - backend
@@ -40,6 +41,7 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8017}
+      SERVER_API_BASE_URL: ${SERVER_API_BASE_URL:-http://backend:8017}
 
 volumes:
   mongodb_data:

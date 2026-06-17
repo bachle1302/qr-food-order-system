@@ -44,6 +44,13 @@ public class OrderController {
     public OrderResponse createPublicByQrToken(@RequestBody OrderRequest req) {
         return orderFacade.createOrderWithQrToken(req);
     }
+
+    @GetMapping("/public/session/{customerSessionId}")
+    public List<OrderResponse> getPublicOrdersByCustomerSession(
+            @PathVariable String customerSessionId,
+            @RequestParam String qrToken) {
+        return orderService.getPublicOrdersByCustomerSession(customerSessionId, qrToken);
+    }
     
     /**
      * Create order with payment in one call (using Facade Pattern)

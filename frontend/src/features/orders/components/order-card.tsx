@@ -1,33 +1,31 @@
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "../types";
+import {
+  formatCurrency,
+  formatDateTime,
+  getCustomerLabel,
+  getDishLabel,
+  getOrderTotal,
+  getTableLabel,
+  ORDER_STATUS_LABELS,
+  type DishNameMap,
+  type TableNameMap,
+} from "../lib/order-ui";
 
 type OrderCardProps = {
   order: Order;
   actions?: OrderStatus[];
+  dishNameById?: DishNameMap;
+  tableNameById?: TableNameMap;
   isUpdating?: boolean;
   onUpdateStatus?: (orderId: string, status: OrderStatus) => void;
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString("vi-VN");
-}
-
 export function OrderCard({
   order,
   actions = [],
+  dishNameById,
+  tableNameById,
   isUpdating,
   onUpdateStatus,
 }: OrderCardProps) {
@@ -35,16 +33,27 @@ export function OrderCard({
     <article className="rounded-lg border border-border bg-card p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">Order #{order.id}</p>
+          <p className="text-sm text-muted-foreground">Đơn #{order.id}</p>
           <h3 className="mt-1 font-semibold text-foreground">
-            Table ID: {order.tableId}
+            {getTableLabel(order.tableId, tableNameById)}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatDate(order.createdAt)}
+            {formatDateTime(order.createdAt)}
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Khách:{" "}
+            <span className="font-medium text-foreground">
+              {getCustomerLabel(order)}
+            </span>
+          </p>
+          {order.customerPhone ? (
+            <p className="text-xs text-muted-foreground">
+              SĐT: {order.customerPhone}
+            </p>
+          ) : null}
         </div>
         <span className="w-fit rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground">
-          {order.status}
+          {ORDER_STATUS_LABELS[order.status]}
         </span>
       </div>
 
@@ -56,7 +65,7 @@ export function OrderCard({
           >
             <div className="flex items-center justify-between gap-3">
               <span className="font-medium text-foreground">
-                Dish ID: {item.dishId}
+                {getDishLabel(item.dishId, dishNameById)}
               </span>
               <span className="text-muted-foreground">x{item.quantity}</span>
             </div>
@@ -64,20 +73,22 @@ export function OrderCard({
               {formatCurrency(item.pricePerUnit)}
             </p>
             {item.note ? (
-              <p className="mt-1 text-muted-foreground">Note: {item.note}</p>
+              <p className="mt-1 text-muted-foreground">Ghi chú: {item.note}</p>
             ) : null}
           </div>
         ))}
       </div>
 
       {order.note ? (
-        <p className="mt-4 text-sm text-muted-foreground">Order note: {order.note}</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Ghi chú đơn: {order.note}
+        </p>
       ) : null}
 
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-        <span className="text-sm text-muted-foreground">Final price</span>
+        <span className="text-sm text-muted-foreground">Tổng tiền</span>
         <span className="font-semibold text-foreground">
-          {formatCurrency(order.finalPrice ?? order.totalPrice)}
+          {formatCurrency(getOrderTotal(order))}
         </span>
       </div>
 
@@ -91,7 +102,7 @@ export function OrderCard({
               size="sm"
               variant={status === "CANCELLED" ? "destructive" : "outline"}
             >
-              {status}
+              {ORDER_STATUS_LABELS[status]}
             </Button>
           ))}
         </div>

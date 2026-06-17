@@ -48,7 +48,7 @@ const EMPTY_EDIT_FORM: EditFormState = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
-      return "Phien dang nhap het han hoac khong co quyen truy cap.";
+      return "Phiên đăng nhập hết hạn hoặc không có quyền truy cập.";
     }
     return error.message;
   }
@@ -57,7 +57,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Khong the xu ly yeu cau quan ly nhan vien.";
+  return "Không thể xử lý yêu cầu quản lý nhân viên.";
 }
 
 function isEmail(value: string) {
@@ -83,7 +83,7 @@ function upsertUser(users: AdminUser[], nextUser: AdminUser) {
 
 function formatDate(value?: string | null) {
   if (!value) {
-    return "Khong co trong response";
+    return "Không có trong response";
   }
 
   return new Intl.DateTimeFormat("vi-VN", {
@@ -174,7 +174,7 @@ export function AdminUsersPage() {
     event.preventDefault();
 
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -183,17 +183,17 @@ export function AdminUsersPage() {
     const displayName = createForm.displayName.trim();
 
     if (!email || !isEmail(email)) {
-      setError("Email khong hop le.");
+      setError("Email không hợp lệ.");
       return;
     }
 
     if (!password) {
-      setError("Password khong duoc de trong.");
+      setError("Mật khẩu không được để trống.");
       return;
     }
 
     if (!displayName) {
-      setError("Display name khong duoc de trong.");
+      setError("Tên hiển thị không được để trống.");
       return;
     }
 
@@ -208,7 +208,7 @@ export function AdminUsersPage() {
       );
       setUsers((current) => upsertUser(current, created));
       setCreateForm(EMPTY_CREATE_FORM);
-      setNotice("Da tao tai khoan STAFF.");
+      setNotice("Đã tạo tài khoản STAFF.");
     } catch (createError) {
       setError(getErrorMessage(createError));
     } finally {
@@ -229,7 +229,7 @@ export function AdminUsersPage() {
     const avatar = editForm.avatar.trim();
 
     if (email && !isEmail(email)) {
-      setError("Email khong hop le.");
+      setError("Email không hợp lệ.");
       return;
     }
 
@@ -245,7 +245,7 @@ export function AdminUsersPage() {
       );
       setUsers((current) => upsertUser(current, updated));
       resetEditForm();
-      setNotice("Da cap nhat user.");
+      setNotice("Đã cập nhật người dùng.");
     } catch (updateError) {
       setError(getErrorMessage(updateError));
     } finally {
@@ -255,7 +255,7 @@ export function AdminUsersPage() {
 
   async function handleUpdateStatus(user: AdminUser, isActive: boolean) {
     if (!token) {
-      setError("Vui long dang nhap bang tai khoan ADMIN.");
+      setError("Vui lòng đăng nhập bằng tài khoản ADMIN.");
       return;
     }
 
@@ -268,7 +268,7 @@ export function AdminUsersPage() {
       setUsers((current) =>
         upsertUser(current, { ...updated, isActive }),
       );
-      setNotice(isActive ? "Da kich hoat user." : "Da vo hieu hoa user.");
+      setNotice(isActive ? "Đã kích hoạt người dùng." : "Đã vô hiệu hóa người dùng.");
     } catch (statusError) {
       setError(getErrorMessage(statusError));
     } finally {
@@ -280,11 +280,11 @@ export function AdminUsersPage() {
     return (
       <div className="space-y-4">
         <EmptyState
-          title="Can dang nhap"
-          description="Vui long dang nhap bang tai khoan ADMIN de quan ly nhan vien."
+          title="Cần đăng nhập"
+          description="Vui lòng đăng nhập bằng tài khoản ADMIN để quản lý nhân viên."
         />
         <Button asChild>
-          <Link href="/login">Dang nhap</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -295,10 +295,10 @@ export function AdminUsersPage() {
       <section className="rounded-lg border border-border bg-card p-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">
-            Tao tai khoan STAFF
+            Tạo tài khoản STAFF
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Role duoc co dinh la STAFF; backend khong cho tao ADMIN qua API nay.
+            Role được cố định là STAFF; backend không cho tạo ADMIN qua API này.
           </p>
         </div>
 
@@ -351,7 +351,7 @@ export function AdminUsersPage() {
           <div className="flex items-end">
             <Button disabled={isSubmitting} type="submit">
               <Plus />
-              Tao STAFF
+              Tạo STAFF
             </Button>
           </div>
         </form>
@@ -361,16 +361,16 @@ export function AdminUsersPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {isEditing ? "Sua user" : "Chon user de sua"}
+              {isEditing ? "Sửa người dùng" : "Chọn người dùng để sửa"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Form nay chi sua email, displayName va avatar. Khong sua role hoac password.
+              Form này chỉ sửa email, tên hiển thị và avatar. Không sửa role hoặc mật khẩu.
             </p>
           </div>
           {isEditing ? (
             <Button onClick={resetEditForm} type="button" variant="outline">
               <X />
-              Huy sua
+              Hủy sửa
             </Button>
           ) : null}
         </div>
@@ -424,7 +424,7 @@ export function AdminUsersPage() {
           <div className="flex items-end">
             <Button disabled={!isEditing || isSubmitting} type="submit">
               <Save />
-              Luu
+              Lưu
             </Button>
           </div>
         </form>
@@ -432,7 +432,7 @@ export function AdminUsersPage() {
 
       <section className="rounded-lg border border-border bg-card p-4">
         <label className="grid gap-1 text-sm text-foreground sm:max-w-xs">
-          Loc theo role
+          Lọc theo role
           <select
             className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onChange={(event) =>
@@ -458,8 +458,8 @@ export function AdminUsersPage() {
 
       {!isLoading && sortedUsers.length === 0 ? (
         <EmptyState
-          title="Chua co user"
-          description="Khong co user nao phu hop bo loc hien tai."
+          title="Chưa có người dùng"
+          description="Không có người dùng nào phù hợp bộ lọc hiện tại."
         />
       ) : null}
 
@@ -471,7 +471,7 @@ export function AdminUsersPage() {
               ? user.isActive
                 ? "active"
                 : "inactive"
-              : "isActive khong co trong response";
+              : "isActive không có trong response";
 
           return (
             <article
@@ -482,7 +482,7 @@ export function AdminUsersPage() {
                 <div className="min-w-0 space-y-2">
                   <div>
                     <h3 className="font-semibold text-foreground">
-                      {user.displayName || "Chua co ten hien thi"}
+                      {user.displayName || "Chưa có tên hiển thị"}
                     </h3>
                     <p className="break-all text-sm text-muted-foreground">
                       {user.email}
@@ -507,7 +507,7 @@ export function AdminUsersPage() {
                     type="button"
                     variant="outline"
                   >
-                    Sua
+                    Sửa
                   </Button>
                   <Button
                     disabled={isActiveAction}

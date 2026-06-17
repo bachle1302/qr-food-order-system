@@ -4,9 +4,8 @@ spring:
   
   data:
     mongodb:
-      uri: mongodb+srv://bach130204_db_user:OlQm0r5vp1uwxFWX@cluster0.1mmqp3a.mongodb.net/?appName=Cluster0
-      database: MONGODB_DATABASE:DACNTT
-
+      uri: mongodb+srv://bach130204_db_user:OlQm0r5vp1uwxFWX@cluster0.1mmqp3a.mongodb.net/DACNTT?appName=Cluster0
+      database: ${MONGODB_DATABASE:DACNTT}
 server:
   port: ${SERVER_PORT:8017}
 

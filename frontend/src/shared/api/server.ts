@@ -14,6 +14,10 @@ type ServerApiFetchOptions = Omit<RequestInit, "body"> & {
   };
 };
 
+const serverApiBaseUrl = (
+  process.env.SERVER_API_BASE_URL ?? env.apiBaseUrl
+).replace(/\/$/, "");
+
 function isJsonLikeBody(body: ServerApiFetchOptions["body"]) {
   return (
     body !== null &&
@@ -57,7 +61,7 @@ export async function serverApiFetch<T>(
     headers.set("Authorization", `Bearer ${options.token}`);
   }
 
-  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+  const response = await fetch(`${serverApiBaseUrl}${path}`, {
     ...options,
     headers,
     body: body as BodyInit | null | undefined,

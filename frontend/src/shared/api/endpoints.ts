@@ -41,8 +41,13 @@ export const endpoints = {
     byCode: (code: string) =>
       `/api/discounts/code/${encodeURIComponent(code)}`,
   },
+  customerSessions: {
+    checkIn: "/api/customer-sessions/check-in",
+  },
   orders: {
     publicQr: "/api/orders/public/qr",
+    publicSession: (customerSessionId: string, qrToken: string) =>
+      `/api/orders/public/session/${encodeURIComponent(customerSessionId)}?qrToken=${encodeURIComponent(qrToken)}`,
     manage: "/api/orders/manage",
     manageNew: "/api/orders/manage/new",
     kitchen: "/api/orders/manage/kitchen",
