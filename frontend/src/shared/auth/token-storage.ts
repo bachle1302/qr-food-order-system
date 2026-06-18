@@ -1,58 +1,58 @@
 "use client";
 
-const ACCESS_TOKEN_KEY = "qrfood.accessToken";
-const REFRESH_TOKEN_KEY = "qrfood.refreshToken";
+import {
+  clearAuthSession,
+  getAccessToken,
+  getAuthRole,
+  getRefreshToken,
+  setAuthSession,
+  type AuthRole,
+} from "./auth-storage";
 
-function getStorage() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return window.localStorage;
-}
-
-const ROLE_KEY = "qrfood.userRole";
-
-export function getAccessToken() {
-  return getStorage()?.getItem(ACCESS_TOKEN_KEY) ?? null;
-}
-
-export function getRefreshToken() {
-  return getStorage()?.getItem(REFRESH_TOKEN_KEY) ?? null;
-}
+export { getAccessToken, getRefreshToken };
 
 export function getUserRole() {
-  return getStorage()?.getItem(ROLE_KEY) ?? null;
+  return getAuthRole();
 }
 
 export function setUserRole(role: string) {
-  getStorage()?.setItem(ROLE_KEY, role);
+  if (role !== "ADMIN" && role !== "STAFF") {
+    return;
+  }
+
+  const accessToken = getAccessToken();
+  const refreshToken = getRefreshToken();
+  if (!accessToken || !refreshToken) {
+    return;
+  }
+
+  setAuthSession({
+    accessToken,
+    refreshToken,
+    role,
+  });
 }
 
 export function setTokens(tokens: {
   accessToken: string;
   refreshToken?: string | null;
+  role?: AuthRole;
+  email?: string | null;
+  displayName?: string | null;
 }) {
-  const storage = getStorage();
-  if (!storage) {
+  if (!tokens.refreshToken || !tokens.role) {
     return;
   }
 
-  // Dev/demo storage only: localStorage is exposed to XSS. Move to httpOnly cookies if backend supports it.
-  storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-
-  if (tokens.refreshToken) {
-    storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-  }
+  setAuthSession({
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    role: tokens.role,
+    email: tokens.email,
+    displayName: tokens.displayName,
+  });
 }
 
 export function clearTokens() {
-  const storage = getStorage();
-  if (!storage) {
-    return;
-  }
-
-  storage.removeItem(ACCESS_TOKEN_KEY);
-  storage.removeItem(REFRESH_TOKEN_KEY);
-  storage.removeItem(ROLE_KEY);
+  clearAuthSession();
 }

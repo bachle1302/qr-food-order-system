@@ -3,11 +3,17 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
-import { getAccessToken, getUserRole } from "@/shared/auth/token-storage";
+import {
+  clearAuthSession,
+  getAccessToken,
+  getAuthRole,
+  type AuthRole,
+} from "@/shared/auth/auth-storage";
 import {
   ClipboardList,
   Home,
   LayoutDashboard,
+  LogOut,
   Settings,
   ShoppingCart,
   Table2,
@@ -89,7 +95,7 @@ function isActivePath(pathname: string, href: string) {
 export function ManagementShell({ children }: ManagementShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<AuthRole | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -98,7 +104,13 @@ export function ManagementShell({ children }: ManagementShellProps) {
       router.push("/login");
       return;
     }
-    const userRole = getUserRole();
+    const userRole = getAuthRole();
+    if (!userRole) {
+      clearAuthSession();
+      router.push("/login");
+      return;
+    }
+
     setRole(userRole);
     setIsChecking(false);
 
@@ -130,6 +142,11 @@ export function ManagementShell({ children }: ManagementShellProps) {
     }
     return true;
   });
+
+  function handleLogout() {
+    clearAuthSession();
+    router.push("/login");
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-foreground dark:bg-slate-950 md:flex">
@@ -178,6 +195,15 @@ export function ManagementShell({ children }: ManagementShellProps) {
               <Settings className="size-4" />
             </Link>
           )}
+          <button
+            aria-label="Đăng xuất"
+            className="grid size-9 place-items-center rounded-lg border border-transparent text-muted-foreground transition hover:border-slate-300 hover:text-foreground dark:hover:border-slate-700"
+            onClick={handleLogout}
+            title="Đăng xuất"
+            type="button"
+          >
+            <LogOut className="size-4" />
+          </button>
         </div>
       </aside>
 

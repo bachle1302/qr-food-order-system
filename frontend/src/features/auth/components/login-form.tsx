@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
-import { setTokens, setUserRole } from "@/shared/auth/token-storage";
+import { setAuthSession } from "@/shared/auth/auth-storage";
 import { login } from "../api/auth.client";
 
 function getLoginError(error: unknown) {
@@ -32,12 +32,19 @@ export function LoginForm() {
 
     try {
       const auth = await login({ email, password });
-      setTokens({
+      if (auth.user.role !== "ADMIN" && auth.user.role !== "STAFF") {
+        setError("Tài khoản không có quyền truy cập hệ thống quản lý.");
+        return;
+      }
+
+      setAuthSession({
         accessToken: auth.accessToken,
         refreshToken: auth.refreshToken,
+        role: auth.user.role,
+        email: auth.user.email,
+        displayName: auth.user.displayName,
       });
-      setUserRole(auth.user.role);
-      
+
       if (auth.user.role === "ADMIN") {
         router.push("/admin");
       } else {
