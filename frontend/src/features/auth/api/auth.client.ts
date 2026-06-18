@@ -35,3 +35,19 @@ export async function login(payload: { email: string; password: string }) {
 
   return response.data;
 }
+
+export async function refreshToken(refreshTokenValue: string) {
+  const response = await apiFetch<ApiResponse<AuthResponse>>(
+    endpoints.auth.refresh,
+    {
+      method: "POST",
+      body: {
+        refreshToken: refreshTokenValue,
+      },
+      cache: "no-store",
+      skipAuthRefresh: true,
+    },
+  );
+
+  return response.data;
+}

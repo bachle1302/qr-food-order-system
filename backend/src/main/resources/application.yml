@@ -4,8 +4,8 @@ spring:
   
   data:
     mongodb:
-      uri: mongodb+srv://bach130204_db_user:OlQm0r5vp1uwxFWX@cluster0.1mmqp3a.mongodb.net/DACNTT?appName=Cluster0
-      database: ${MONGODB_DATABASE:DACNTT}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/rms}
+      database: ${MONGODB_DATABASE:rms}
 server:
   port: ${SERVER_PORT:8017}
 
@@ -26,5 +26,4 @@ app:
     check-in-per-minute: ${APP_RATE_LIMIT_CHECK_IN_PER_MINUTE:20}
     status-per-minute: ${APP_RATE_LIMIT_STATUS_PER_MINUTE:60}
     table-qr-per-minute: ${APP_RATE_LIMIT_TABLE_QR_PER_MINUTE:60}
-
 

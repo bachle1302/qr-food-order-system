@@ -1,267 +1,487 @@
-# QR Food Ordering & Restaurant Management System
+# QR Food Order System
 
-A fullstack QR-based food ordering and restaurant management platform built with **Spring Boot**, **Next.js**, **MongoDB**, **Docker**, and **GitHub Actions CI/CD**.
+A fullstack restaurant ordering and management system that allows customers to scan QR codes, place orders, and helps staff manage restaurant operations in realtime.
+
+![Java](https://img.shields.io/badge/Java-17-orange)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-green)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-green)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+![JWT](https://img.shields.io/badge/Auth-JWT-purple)
+![Realtime](https://img.shields.io/badge/Realtime-SSE-blue)
 
 [![Backend CI](https://github.com/bachle1302/qr-food-order-system/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/bachle1302/qr-food-order-system/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/bachle1302/qr-food-order-system/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/bachle1302/qr-food-order-system/actions/workflows/frontend-ci.yml)
 [![Docker CI](https://github.com/bachle1302/qr-food-order-system/actions/workflows/docker-ci.yml/badge.svg)](https://github.com/bachle1302/qr-food-order-system/actions/workflows/docker-ci.yml)
 
----
+## Demo
 
-## 🌟 Overview
+Live demo will be added soon.
 
-This project is a modern, mobile-first QR code dining and restaurant management system (RMS). It enables contactless dining where customers scan a QR code at their table to check-in, browse the menu, and place orders directly. Staff and kitchen workers manage the order lifecycle in real-time, while administrators monitor operations, configure menus/tables, and view analytics.
+| Customer Menu | Customer Cart | Customer Order Status |
+|---|---|---|
+| ![Customer Menu](./docs/screenshots/customer-menu.png) | ![Customer Cart](./docs/screenshots/customer-cart.png) | ![Customer Order Status](./docs/screenshots/customer-order-status.png) |
 
----
+| Staff Orders Dashboard | Admin Dashboard | QR Code Management |
+|---|---|---|
+| ![Staff Orders Dashboard](./docs/screenshots/staff-orders-dashboard.png) | ![Admin Dashboard](./docs/screenshots/admin-dashboard.png) | ![QR Code Management](./docs/screenshots/QRCodeManagement.png) |
 
-## 🚀 Key Features
+## Project Overview
 
-### 📱 Customer (Mobile-First QR Ordering)
-* **Table QR Scan & Check-in**: Scan a unique QR token to check in with a guest name/phone.
-* **Smart Menu Browsing**: Sleek category navigation, dish details, active discounts, and customizations.
-* **Isolated Session Order Tracking**: Customers track only their active session orders; they cannot view past sessions or orders from other tables.
-* **Subtotal & Cart Management**: Live cart subtotal calculations and notes for the kitchen.
+QR Food Order System is a fullstack restaurant management system designed for QR-based table ordering. Customers can scan a table QR code, check in, browse the menu, add dishes to cart, and place orders without creating an account.
 
-### 🧑‍🍳 Staff & Kitchen Dashboard
-* **Real-time Order Updates**: Incoming orders trigger instant UI notifications via Server-Sent Events (SSE).
-* **Order Lifecycle Control**: Transition orders through statuses (`PENDING`, `CONFIRMED`, `COOKING`, `COMPLETED`, `CANCELLED`).
-* **Kitchen View**: Focuses entirely on active cooking items (`CONFIRMED`, `COOKING`).
-* **Operational Isolation**: Staff can manage orders but cannot modify menus, tables, discounts, or user accounts.
+The system reduces manual ordering steps in restaurants and improves communication between customers, staff, and administrators. Staff can manage order status in realtime, while admins manage operational data such as tables, QR tokens, categories, dishes, discounts, users, and revenue summaries.
 
-### 👑 Admin Management & Analytics
-* **Table & QR Token Generator**: CRUD tables and regenerate secure QR token links.
-* **Menu Management**: CRUD dishes, price listings, images, and categories.
-* **Staff/User Management**: CRUD users and toggle activation state (`isActive = false` locks and invalidates user JWTs immediately).
-* **Discount Code Campaigns**: Manage codes, percentage values, minimum orders, and maximum limits.
-* **Revenue Dashboard**: Analyze daily statistics, average order values, and best-selling dishes.
+## Key Features
 
-### 🛡️ Security & Production-Like Architecture
-* **JWT Authentication**: Secure stateless token validation with separate access/refresh lifecycle.
-* **Granular Role-Based Access Control (RBAC)**: Stricter authorization protecting administration routes via Spring Security.
-* **Rate Limiting**: Public API protection (check-in, checkout, QR details) against DDoS/spam via custom in-memory filters.
-* **Security Integration Tests**: Complete automated tests covering authorization, invalid tokens, and rate limits.
-* **Strict TypeScript Standard**: Enabled strict linter parameters (`no-explicit-any`) to ensure compile-time safety.
+### Customer
 
----
+- Open a table-specific ordering page from a secure QR token.
+- Check in as a guest without JWT authentication.
+- Browse menu categories and dishes.
+- Add dishes to cart with item notes and order notes.
+- Place public QR orders without logging in.
+- View only the orders that belong to the current `customerSessionId`.
 
-## 🛠️ Tech Stack
+### Staff
 
-* **Backend**: Java 17, Spring Boot, Spring Security (JWT), Spring Data MongoDB, Maven, Server-Sent Events (SSE), In-memory Rate Limiting.
-* **Frontend**: Next.js 16 (App Router), TypeScript, TailwindCSS, shadcn/ui, Recharts.
-* **DevOps & Testing**: Docker, Docker Compose, GitHub Actions CI, JUnit 5, Mockito.
+- View and filter managed orders.
+- Filter orders by status, table, and date range.
+- Update order status through the validated backend workflow.
+- Receive realtime order events through Server-Sent Events.
 
----
+### Admin
 
-## 📐 Architecture & System Flow
+- Manage restaurant tables.
+- Regenerate table QR tokens.
+- View and copy QR links for customer ordering.
+- Manage categories, dishes, discounts, and users.
+- Toggle user active/inactive status.
+- View revenue and daily order summaries.
 
-```mermaid
-flowchart TD
-  subgraph Client Tier [Client Tier]
-    Cust[Customer Mobile Browser]
-    Staff[Staff Orders Panel]
-    Admin[Admin Management Console]
-  end
+### Security
 
-  subgraph API Gateway / Security [API Gateway & Security Filters]
-    RL[Rate Limit Filter]
-    Auth[JWT Auth Filter]
-  end
+- JWT-based authentication with access and refresh tokens.
+- Role-based authorization using `ADMIN` and `STAFF`.
+- Protected admin and staff APIs.
+- Public QR ordering flow based on `qrToken` instead of raw `tableId`.
+- Frontend middleware guards for `/admin/**` and `/staff/**`.
 
-  subgraph Services [Application Core Services]
-    OrderSvc[Order & SSE Event Service]
-    MenuSvc[Menu & Category Service]
-    TableSvc[Table & QR Service]
-    UserSvc[User & Auth Service]
-  end
+## Technical Highlights
 
-  subgraph Data Store [Data Store]
-    DB[(MongoDB Database)]
-  end
+### Secure QR Token Ordering
 
-  Cust -->|Public API / No Token| RL
-  Staff -->|Operational API / JWT| Auth
-  Admin -->|Admin API / JWT| Auth
-  
-  RL --> Auth
-  Auth --> OrderSvc
-  Auth --> MenuSvc
-  Auth --> TableSvc
-  Auth --> UserSvc
-  
-  OrderSvc --> DB
-  MenuSvc --> DB
-  TableSvc --> DB
-  UserSvc --> DB
+Instead of exposing internal table IDs in the public QR flow, the system uses secure table `qrToken` values. The backend resolves the table from the token and creates the order server-side, preventing clients from manipulating table IDs directly.
+
+Admins can regenerate a table QR token if a QR code needs to be rotated. The client only sends selected dish IDs, quantities, notes, and the QR/customer session context; the backend validates dishes and calculates order pricing from database values.
+
+### Frictionless Customer Ordering
+
+Customers do not need an account to place an order. The public flow is designed for real restaurant usage: scan QR, check in, choose dishes, and submit an order. Staff and admin operations remain protected by JWT authentication and role-based authorization.
+
+### Customer Session Isolation
+
+Orders can be linked to a `customerSessionId`. The public session order endpoint validates both `customerSessionId` and `qrToken`, then returns only orders for the current customer session. This prevents a new customer at the same table from seeing orders created by a previous customer.
+
+### Realtime Staff Workflow with SSE
+
+The backend exposes a protected SSE endpoint at `/api/orders/events`. When a customer creates an order or staff changes an order status, the backend broadcasts realtime events such as `order-created` and `order-status-changed`.
+
+### Order Status Workflow
+
+Orders use a defined status lifecycle:
+
+```text
+NEW -> CONFIRMED -> PREPARING -> READY -> SERVED -> PAID -> COMPLETED
 ```
 
-### Main Operational Flow
-1. **Admin Setup**: Admin configures the tables and exports unique QR tokens.
-2. **Customer Entry**: Customer scans the QR code at the table, checking in with their name/phone.
-3. **Food Ordering**: Customer browses the menu, places an order, and tracks its preparation.
-4. **Real-time Dispatch**: The system broadcasts the order details to the Staff/Kitchen dashboard via SSE.
-5. **Kitchen Preparation**: Kitchen accepts, prepares, and updates the order status.
-6. **Billing & Session Closure**: Staff closes the order upon completion.
+The backend also supports cancellation paths and validates allowed transitions through the `OrderStatus` enum. This prevents invalid status updates such as moving a completed or cancelled order back to an earlier state.
 
----
+### Role-Based Protected APIs
 
-## 👥 Role Permissions Matrix
+Admin and staff operations are protected by Spring Security and JWT. Admin-only routes cover user management, menu management, table management, discounts, and revenue summaries. Staff can access operational order management APIs.
 
-| Operational Action | ADMIN | STAFF | CUSTOMER (Guest) |
-| :--- | :---: | :---: | :---: |
-| Manage System Users | ✅ | ❌ | ❌ |
-| View Revenue Analytics | ✅ | ❌ | ❌ |
-| Configure Tables & QR Codes | ✅ | ❌ | ❌ |
-| Create/Edit Menu & Discounts | ✅ | ❌ | ❌ |
-| Update Order Preparation Status | ✅ | ✅ | ❌ |
-| Connect to Real-time SSE Events | ✅ | ✅ | ❌ |
-| Scan QR & Check-in | ❌ | ❌ | ✅ |
-| Submit Order & Track Progress | ❌ | ❌ | ✅ |
+### Frontend Caching Strategy
 
-## 📚 Documentation
+Public menu data uses Next.js server-side fetch caching with revalidation for categories and dishes. QR table lookup uses `no-store` because token validity and table state should be checked fresh. Protected dashboards use client-side authenticated API calls.
 
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [API Security Notes](docs/API_SECURITY.md)
+### Fullstack Production-Oriented Structure
 
----
+The project is structured as a fullstack monorepo with a Next.js frontend, Spring Boot backend, MongoDB database, Docker-based local environment, environment variables, route middleware, and GitHub Actions workflows.
 
-## 🐳 Getting Started with Docker
+## Tech Stack
 
-Ensure you have Docker and Docker Compose installed.
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui, next-themes |
+| Backend | Java 17, Spring Boot 3.2, Spring Security, Spring Data MongoDB |
+| Database | MongoDB |
+| Auth | JWT access token, refresh token, BCrypt password hashing |
+| Realtime | Server-Sent Events |
+| QR | Frontend QR rendering with `qrcode` |
+| Charts | Recharts |
+| DevOps | Docker, Docker Compose, GitHub Actions |
+| Testing | Spring Boot Test, Spring Security Test, ESLint, TypeScript compiler |
 
-### 1. Set Up Environment Variables
-Copy the template configuration file:
+## System Architecture
+
+```mermaid
+flowchart LR
+    Customer[Customer QR Browser] --> FE[Next.js Frontend]
+    Staff[Staff Dashboard] --> FE
+    Admin[Admin Dashboard] --> FE
+
+    FE --> API[Spring Boot REST API]
+    API --> Security[Spring Security + JWT]
+    API --> SSE[Server-Sent Events]
+    API --> DB[(MongoDB)]
+
+    SSE --> Staff
+    Security --> Services[Business Services]
+    Services --> DB
+```
+
+The frontend communicates with the backend through REST APIs. Staff dashboards subscribe to SSE streams to receive realtime order updates. MongoDB stores users, tables, categories, dishes, customer sessions, orders, discounts, and payments.
+
+## Main Data Models
+
+| Model | Description |
+|---|---|
+| User | Admin and staff accounts with email, password hash, role, active status, and timestamps |
+| Role | Role enum with `ADMIN` and `STAFF` |
+| Table | Restaurant table with name, seats, availability, and secure `qrToken` |
+| Customer | Guest customer identity created during check-in |
+| CustomerSession | Active customer session linked to customer, table, and QR token |
+| Category | Menu category |
+| Dish | Menu item with description, image URL, price, category, and availability |
+| Order | Customer order linked to table/session with totals, notes, created time, and status |
+| OrderItem | Dish line item with dish ID, quantity, price at order time, and note |
+| OrderStatus | Valid statuses and allowed backend transitions |
+| Discount | Discount code configuration |
+| Payment | Payment record linked to an order |
+
+## API Highlights
+
+### Public APIs
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/login` | Staff/admin login |
+| POST | `/api/auth/refresh` | Refresh JWT tokens |
+| GET | `/api/tables/qr/{qrToken}` | Get table information by secure QR token |
+| POST | `/api/customer-sessions/check-in` | Create or reuse a customer session for a QR table |
+| GET | `/api/categories` | Get menu categories |
+| GET | `/api/dishes` | Get dishes |
+| POST | `/api/orders/public/qr` | Create an order from the QR ordering page |
+| GET | `/api/orders/public/session/{customerSessionId}?qrToken=...` | Get orders for the current customer session only |
+
+### Staff APIs
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/orders/manage` | Get and filter orders by status, table, and date range |
+| GET | `/api/orders/manage/new` | Get new orders |
+| GET | `/api/orders/manage/kitchen` | Get kitchen-relevant order statuses |
+| PUT | `/api/orders/{id}/status` | Update order status with transition validation |
+| GET | `/api/orders/events` | Subscribe to realtime order events |
+
+### Admin APIs
+
+| Method | Endpoint | Description |
+|---|---|---|
+| CRUD | `/api/tables` | Manage restaurant tables |
+| POST | `/api/tables/{id}/regenerate-qr-token` | Regenerate a table QR token |
+| CRUD | `/api/categories` | Manage menu categories |
+| CRUD | `/api/dishes` | Manage dishes |
+| CRUD | `/api/discounts` | Manage discount codes |
+| CRUD | `/api/users` | Manage users and active status |
+| GET | `/api/orders/summary/daily` | Get daily order summary |
+| GET | `/api/orders/revenue/daily` | Get daily revenue |
+| GET | `/api/orders/revenue/monthly` | Get monthly revenue |
+
+## Project Structure
+
+```text
+qr-food-order-system/
+├── backend/
+│   ├── src/main/java/com/rms/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── dto/
+│   │   ├── model/
+│   │   ├── repository/
+│   │   ├── security/
+│   │   └── service/
+│   ├── src/main/resources/
+│   ├── src/test/
+│   ├── Dockerfile
+│   └── pom.xml
+├── frontend/
+│   ├── src/app/
+│   ├── src/components/
+│   ├── src/features/
+│   ├── src/shared/
+│   ├── Dockerfile
+│   └── package.json
+├── docs/
+│   └── screenshots/
+├── docker-compose.yml
+├── .env.example
+├── README.md
+└── LICENSE
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Java 17+
+- Maven 3.9+ or Maven Wrapper if added later
+- Node.js 20+
+- npm
+- MongoDB or Docker
+- Docker and Docker Compose for containerized setup
+
+### Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/qr-food-order-system.git
+cd qr-food-order-system
+```
+
+### Configure environment variables
+
 ```bash
 cp .env.example .env
 ```
-*(The default configuration contains safe dev values and database seeds. For production, please override with secure secrets).*
 
-### 2. Start the Containers
+Update `.env` with local values. Do not commit `.env`.
+
+### Run backend locally
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Backend runs at:
+
+```text
+http://localhost:8017
+```
+
+### Run frontend locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs at:
+
+```text
+http://localhost:3000
+```
+
+## Environment Variables
+
+### Root `.env`
+
+The repository includes `.env.example` with safe placeholders. Use it as a template:
+
+```env
+SERVER_PORT=8017
+SPRING_PROFILES_ACTIVE=dev
+
+MONGODB_URI=mongodb://mongodb:27017/rms
+MONGODB_DATABASE=rms
+
+JWT_SECRET=replace_with_a_strong_base64_secret
+JWT_ACCESS_EXPIRATION_MS=3600000
+JWT_REFRESH_EXPIRATION_MS=604800000
+
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
+SERVER_API_BASE_URL=http://backend:8017
+
+APP_SEED_ENABLED=true
+APP_RATE_LIMIT_ENABLED=true
+APP_RATE_LIMIT_PUBLIC_ORDER_PER_MINUTE=10
+APP_RATE_LIMIT_CHECK_IN_PER_MINUTE=20
+APP_RATE_LIMIT_STATUS_PER_MINUTE=60
+APP_RATE_LIMIT_TABLE_QR_PER_MINUTE=60
+```
+
+### Frontend environment
+
+For local frontend development without Docker, use:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
+SERVER_API_BASE_URL=http://localhost:8017
+```
+
+For Docker Compose, `SERVER_API_BASE_URL=http://backend:8017` is used by the Next.js server inside the Docker network.
+
+## Running with Docker
+
+Start MongoDB, backend, and frontend:
+
+```bash
+docker compose up --build
+```
+
+Run in background:
+
 ```bash
 docker compose up --build -d
 ```
 
-### 3. Access the Applications
-* **Frontend Application**: [http://localhost:3000](http://localhost:3000)
-* **Backend API Console**: [http://localhost:8017](http://localhost:8017)
-* **MongoDB Instance**: `localhost:27017`
+Stop services:
 
-### 🔑 Demo Accounts (Auto-Seeded)
-* **ADMINISTRATOR**:
-  * **Email**: `admin@qrfood.local`
-  * **Password**: `Admin@123456`
-* **STAFF**:
-  * **Email**: `staff@qrfood.local`
-  * **Password**: `Staff@123456`
+```bash
+docker compose down
+```
 
----
+Remove local database volume:
 
-## 💻 Local Development
+```bash
+docker compose down -v
+```
 
-### Backend (Spring Boot)
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Run automated verification tests:
-   ```bash
-   mvn test -Dspring.profiles.active=test
-   ```
-3. Compile and package:
-   ```bash
-   mvn clean package
-   ```
+> Warning: `docker compose down -v` removes local MongoDB data.
 
-### Frontend (Next.js)
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Run ESLint syntax verification:
-   ```bash
-   npm run lint
-   ```
-4. Run TypeScript compile checks:
-   ```bash
-   npx tsc --noEmit
-   ```
-5. Build the production package:
-   ```bash
-   npm run build
-   ```
+Default URLs:
 
----
+| Service | URL |
+|---|---|
+| Frontend | `http://localhost:3000` |
+| Backend | `http://localhost:8017` |
+| MongoDB | `mongodb://localhost:27017` |
 
-## ⚙️ Environment Variables Outline
-The system reads the following variables from the `.env` file:
-* `MONGODB_URI`: Connection string to the MongoDB cluster.
-* `JWT_SECRET`: Base64 encoded key (at least 256-bit) to sign and verify JWT tokens.
-* `CORS_ALLOWED_ORIGINS`: Allowed origins (e.g., `http://localhost:3000`).
-* `NEXT_PUBLIC_API_BASE_URL`: Public API path prefix utilized by Next.js components.
-* `APP_RATE_LIMIT_ENABLED`: Global toggle for Public API rate limiting.
-* `APP_SEED_ENABLED`: Seed admin accounts, dishes, and tables if the database is empty.
+## Development Workflow
 
----
+### Backend
 
-## 🧪 Automated Testing & CI/CD Pipelines
+```bash
+cd backend
+mvn test
+mvn clean package
+mvn spring-boot:run
+```
 
-The codebase integrates three separate automation jobs on **GitHub Actions** triggered on every push and pull request:
-1. **Backend CI** (`backend-ci.yml`): Compiles, runs authorization and rate-limiting tests, and packages the Spring Boot Jars.
-2. **Frontend CI** (`frontend-ci.yml`): Runs linter checks, TypeScript compiler tests, and exports static/optimized Next.js pages.
-3. **Docker CI** (`docker-ci.yml`): Verifies Compose config validity and tests building docker images for both backend and frontend.
+### Frontend
 
----
+```bash
+cd frontend
+npm run lint
+npx.cmd tsc --noEmit
+npm run build
+npm run dev
+```
 
-## 📈 Production Recommendations
+Use `npx tsc --noEmit` on macOS/Linux. On Windows PowerShell, `npx.cmd tsc --noEmit` avoids script execution policy issues.
 
-* **Distributed Rate Limiting**: The current rate-limiting is in-memory. If scaling to multiple server nodes, migrate the filter storage to **Redis**.
-* **Sensitive Secrets**: Never commit `.env` files to git. Use secure environment inject systems in your cloud provider.
-* **CORS Settings**: Restrict `CORS_ALLOWED_ORIGINS` strictly to your domain on production servers.
+### Docker
 
----
+```bash
+docker compose up --build
+```
 
-## 📸 Screenshots
+## Deployment Guide
 
-### 📱 Customer QR Ordering Flow (Mobile-First)
+### Frontend on Vercel
 
-<table>
-  <tr>
-    <td align="center" valign="top" width="33%">
-      <b>1. Menu Browsing</b><br/><br/>
-      <img src="docs/screenshots/customer-menu.png" width="260" alt="Customer Menu"/>
-    </td>
-    <td align="center" valign="top" width="33%">
-      <b>2. Cart & Notes</b><br/><br/>
-      <img src="docs/screenshots/customer-cart.png" width="260" alt="Customer Cart"/>
-    </td>
-    <td align="center" valign="top" width="33%">
-      <b>3. Real-time Status</b><br/><br/>
-      <img src="docs/screenshots/customer-order-status.png" width="260" alt="Customer Order Status"/>
-    </td>
-  </tr>
-</table>
+1. Import the GitHub repository into Vercel.
+2. Set the root directory to `frontend`.
+3. Use the build command:
 
-### 🧑‍🍳 Staff Orders Dashboard
+```bash
+npm run build
+```
 
-![Staff Orders Dashboard](docs/screenshots/staff-orders-dashboard.png)
+4. Set production environment variables:
 
-### 👑 Admin Analytics & Management
+```env
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.com
+SERVER_API_BASE_URL=https://your-backend-domain.com
+```
 
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
+### Backend on Render
 
-### 📊 Table & QR Code Generation
+1. Create a new Web Service from the repository.
+2. Set the root directory to `backend`.
+3. Use Java 17.
+4. Build with:
 
-![QR Code Management](docs/screenshots/QRCodeManagement.png)
+```bash
+mvn clean package
+```
 
----
+5. Start with:
 
-## 💼 Key CV Highlights for Recruiters
+```bash
+java -jar target/rms-backend-1.0.0.jar
+```
 
-* **Real-time Event Broadcasting**: Implemented reactive order updates from server to web UI using Server-Sent Events (SSE) instead of heavy polling.
-* **Stateless Token Management**: Built a JWT Authentication system featuring an active account state verify (`isActive`) interceptor to instantly lock and terminate rogue active tokens.
-* **Robust Security Verification**: Designed comprehensive JUnit integration tests covering granular admin vs staff role permissions and custom HTTP 429 rate limit triggers.
-* **Strict Type Safety**: Migrated the frontend application to strict TypeScript compiler standards (`no-explicit-any`), leading to cleaner refactoring and zero run-time crash bugs.
-* **Infrastructure Dockerization**: Configured multi-container Docker Compose files enabling zero-configuration development startup.
+6. Configure production environment variables:
+   - `SERVER_PORT`
+   - `MONGODB_URI`
+   - `MONGODB_DATABASE`
+   - `JWT_SECRET`
+   - `JWT_ACCESS_EXPIRATION_MS`
+   - `JWT_REFRESH_EXPIRATION_MS`
+   - `CORS_ALLOWED_ORIGINS`
+   - `APP_SEED_ENABLED=false` for production
+
+### Production Notes
+
+- Do not commit `.env`.
+- Use a strong JWT secret.
+- Use MongoDB Atlas or another managed MongoDB service for production.
+- Make sure `CORS_ALLOWED_ORIGINS` includes the frontend production domain.
+- Use production backend URL in `NEXT_PUBLIC_API_BASE_URL`.
+- Disable development seed data in production unless intentionally needed.
+
+## Technical Challenges
+
+- Designed a secure QR token flow to avoid exposing internal table IDs in public ordering.
+- Implemented public guest ordering without requiring customer accounts.
+- Added customer session isolation so guests only see their own session orders.
+- Built backend-driven pricing by resolving dish price from MongoDB during order creation.
+- Implemented realtime order broadcasting using Server-Sent Events.
+- Added order status transition validation to protect operational workflow consistency.
+- Built JWT authentication and role-based authorization for `ADMIN` and `STAFF`.
+- Added frontend auth storage, refresh token handling, and middleware route guards.
+- Separated public cached menu fetches from protected dashboard API calls.
+- Dockerized frontend, backend, and MongoDB for consistent local development.
+
+This project is not only a CRUD application. It demonstrates secure QR-based ordering, realtime restaurant workflows, role-based access control, backend-driven order logic, Dockerized infrastructure, and production-oriented deployment configuration.
+
+## Roadmap
+
+- [x] QR token based table ordering
+- [x] Guest customer check-in
+- [x] Customer session order tracking
+- [x] Backend-driven dish price calculation
+- [x] Staff order management API and dashboard
+- [x] Realtime order updates with SSE
+- [x] Order status workflow validation
+- [x] Admin table management and QR regeneration
+- [x] Admin category, dish, discount, and user management
+- [x] Admin revenue summary dashboard
+- [x] Docker Compose setup for frontend, backend, and MongoDB
+- [x] Frontend auth refresh handling and middleware guards
+- [ ] Dedicated frontend kitchen screen
+- [ ] Payment provider integration
+- [ ] Swagger/OpenAPI documentation
+- [ ] More unit and integration test coverage
+- [ ] CI/CD deployment pipeline
+- [ ] Cloud deployment demo link
+
+## License
+
+This project is licensed under the MIT License.
