@@ -9,12 +9,14 @@ import {
   Table2,
   Utensils,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
 import { getAccessToken } from "@/shared/auth/token-storage";
+import { useDelayedLoadingMessage } from "@/shared/hooks/use-delayed-loading-message";
+import { useNotifications } from "@/shared/notifications/notification-store";
+import { ColdStartNotice } from "@/shared/ui/cold-start-notice";
 import { ErrorState } from "@/shared/ui/error-state";
-import { LoadingState } from "@/shared/ui/loading-state";
 import { getOrderDishes } from "../api/dishes.client";
 import { getManagedOrders, updateOrderStatus } from "../api/orders.client";
 import { getOrderTables } from "../api/tables.client";
@@ -85,8 +87,85 @@ function normalizeSearch(value: string) {
   return value.trim().toLocaleLowerCase("vi-VN");
 }
 
+function getShortOrderId(orderId: string) {
+  return orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId;
+}
+
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-muted ${className}`} />;
+}
+
+function StaffOrdersSkeleton({
+  showColdStartMessage,
+}: {
+  showColdStartMessage: boolean;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="hidden gap-3 overflow-x-auto pb-1 lg:flex">
+        {["table-one", "table-two", "table-three", "table-four"].map(
+          (item) => (
+            <div
+              className="min-w-28 border-y border-border px-3 py-4"
+              key={item}
+            >
+              <SkeletonBlock className="h-6 w-12" />
+              <SkeletonBlock className="mt-4 h-3 w-20" />
+              <SkeletonBlock className="mt-3 h-3 w-16" />
+            </div>
+          ),
+        )}
+      </div>
+
+      <div className="hidden flex-wrap gap-2 lg:flex">
+        {["new", "cooking", "served", "paid"].map((item) => (
+          <SkeletonBlock className="h-7 w-28" key={item} />
+        ))}
+      </div>
+
+      <div className="space-y-3 lg:hidden">
+        {["mobile-one", "mobile-two", "mobile-three"].map((item) => (
+          <div className="border-y border-border py-4" key={item}>
+            <SkeletonBlock className="h-5 w-32" />
+            <SkeletonBlock className="mt-3 h-4 w-52" />
+            <SkeletonBlock className="mt-4 h-10 w-full" />
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-lg border border-border lg:block">
+        <div className="grid grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] gap-3 border-b border-border px-4 py-3">
+          {["table", "customer", "items", "status", "staff", "time"].map(
+            (item) => (
+              <SkeletonBlock className="h-4 w-20" key={item} />
+            ),
+          )}
+        </div>
+        <div className="divide-y divide-border">
+          {["row-one", "row-two", "row-three", "row-four"].map((item) => (
+            <div
+              className="grid grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] gap-3 px-4 py-4"
+              key={item}
+            >
+              <SkeletonBlock className="h-5 w-10" />
+              <SkeletonBlock className="h-5 w-28" />
+              <SkeletonBlock className="h-12 w-full" />
+              <SkeletonBlock className="h-9 w-28" />
+              <SkeletonBlock className="h-5 w-14" />
+              <SkeletonBlock className="h-5 w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {showColdStartMessage ? <ColdStartNotice /> : null}
+    </div>
+  );
+}
+
 export function StaffOrdersDashboard() {
-  const [token, setToken] = useState<string | null>(null);
+  const { addNotification } = useNotifications();
+  const [token, setToken] = useState<string | null | undefined>(undefined);
   const [orders, setOrders] = useState<Order[]>([]);
   const [dishImageById, setDishImageById] = useState<DishImageMap>({});
   const [dishNameById, setDishNameById] = useState<DishNameMap>({});
@@ -103,6 +182,10 @@ export function StaffOrdersDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const showColdStartMessage = useDelayedLoadingMessage(
+    isLoading && Boolean(token),
+  );
+  const notificationDedupeRef = useRef<Set<string>>(new Set());
 
   const loadOrders = useCallback(
     async (accessToken: string) => {
@@ -152,7 +235,7 @@ export function StaffOrdersDashboard() {
 
       const accessToken = getAccessToken();
       setToken(accessToken);
-      setIsLoading(false);
+      setIsLoading(Boolean(accessToken));
     });
 
     return () => {
@@ -190,10 +273,69 @@ export function StaffOrdersDashboard() {
     setSelectedOrderId((current) => current ?? event.order.id);
   }, []);
 
+  const shouldNotifyRealtimeEvent = useCallback((dedupeKey: string) => {
+    const cache = notificationDedupeRef.current;
+    if (cache.has(dedupeKey)) {
+      return false;
+    }
+
+    if (cache.size > 100) {
+      cache.clear();
+    }
+
+    cache.add(dedupeKey);
+    return true;
+  }, []);
+
+  const handleOrderCreatedEvent = useCallback(
+    (event: { order: Order }) => {
+      handleRealtimeOrder(event);
+
+      const { order } = event;
+      const dedupeKey = `created-${order.id}-${order.status}-${order.createdAt}`;
+      if (!shouldNotifyRealtimeEvent(dedupeKey)) {
+        return;
+      }
+
+      addNotification({
+        actionHref: "/staff/orders",
+        message: `${getTableLabel(order.tableId, tableNameById)} · ${getCustomerLabel(order)}`,
+        title: "Có đơn mới",
+        type: "info",
+      });
+    },
+    [
+      addNotification,
+      handleRealtimeOrder,
+      shouldNotifyRealtimeEvent,
+      tableNameById,
+    ],
+  );
+
+  const handleOrderStatusChangedEvent = useCallback(
+    (event: { order: Order }) => {
+      handleRealtimeOrder(event);
+
+      const { order } = event;
+      const dedupeKey = `status-${order.id}-${order.status}-${order.createdAt}`;
+      if (!shouldNotifyRealtimeEvent(dedupeKey)) {
+        return;
+      }
+
+      addNotification({
+        actionHref: "/staff/orders",
+        message: `#${getShortOrderId(order.id)} · ${ORDER_STATUS_LABELS[order.status]}`,
+        title: "Đơn đã cập nhật",
+        type: "success",
+      });
+    },
+    [addNotification, handleRealtimeOrder, shouldNotifyRealtimeEvent],
+  );
+
   const { state: sseState } = useOrderEvents({
-    token,
-    onOrderCreated: handleRealtimeOrder,
-    onOrderStatusChanged: handleRealtimeOrder,
+    token: token ?? null,
+    onOrderCreated: handleOrderCreatedEvent,
+    onOrderStatusChanged: handleOrderStatusChangedEvent,
   });
 
   const customerSearch = normalizeSearch(customerFilter);
@@ -338,6 +480,7 @@ export function StaffOrdersDashboard() {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       await Promise.all([loadOrders(token), loadDishes(token), loadTables(token)]);
     } catch (loadError) {
@@ -345,6 +488,23 @@ export function StaffOrdersDashboard() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (token === undefined) {
+    return (
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
+        <section className="min-w-0 border-y border-gray-200 text-foreground dark:border-slate-800">
+          <div className="border-b border-border p-4 md:p-6">
+            <SkeletonBlock className="h-4 w-24" />
+            <SkeletonBlock className="mt-3 h-8 w-40" />
+            <SkeletonBlock className="mt-3 h-4 w-36" />
+          </div>
+          <div className="p-4 md:p-6">
+            <StaffOrdersSkeleton showColdStartMessage={false} />
+          </div>
+        </section>
+      </div>
+    );
   }
 
   if (!token) {
@@ -384,7 +544,12 @@ export function StaffOrdersDashboard() {
                 <span className="rounded-md border border-border bg-background px-2 py-1 text-xs text-muted-foreground">
                   Kết nối realtime: {sseState}
                 </span>
-                <Button onClick={refresh} size="sm" variant="outline">
+                <Button
+                  disabled={isLoading}
+                  onClick={refresh}
+                  size="sm"
+                  variant="outline"
+                >
                   <RefreshCw className="size-4" />
                   Tải lại
                 </Button>
@@ -525,7 +690,14 @@ export function StaffOrdersDashboard() {
           </div>
 
           <div className="space-y-5 p-4 md:p-6">
-            {error ? <ErrorState message={error} /> : null}
+            {error ? (
+              <div className="rounded-lg border border-border bg-card p-5">
+                <ErrorState message={error} />
+                <Button className="mt-4" onClick={refresh} type="button">
+                  Thử lại
+                </Button>
+              </div>
+            ) : null}
 
             <div className="hidden gap-3 overflow-x-auto pb-1 lg:flex">
               {tableCards.length === 0 ? (
@@ -580,7 +752,11 @@ export function StaffOrdersDashboard() {
               ))}
             </div>
 
-            {isLoading ? <LoadingState label="Đang tải đơn hàng..." /> : null}
+            {isLoading ? (
+              <StaffOrdersSkeleton
+                showColdStartMessage={showColdStartMessage}
+              />
+            ) : null}
 
             {!isLoading && visibleOrders.length === 0 ? (
               <div className="border-y border-dashed border-gray-200 py-8 text-center dark:border-slate-800">
@@ -594,7 +770,7 @@ export function StaffOrdersDashboard() {
               </div>
             ) : null}
 
-            {visibleOrders.length > 0 ? (
+            {!isLoading && visibleOrders.length > 0 ? (
               <div className="overflow-hidden border-y border-border lg:hidden">
                 {visibleOrders.map((order) => (
                   <MobileOrderCard
@@ -612,7 +788,7 @@ export function StaffOrdersDashboard() {
               </div>
             ) : null}
 
-            {visibleOrders.length > 0 ? (
+            {!isLoading && visibleOrders.length > 0 ? (
               <div className="hidden overflow-hidden rounded-lg border border-gray-200 dark:border-slate-800 lg:block">
                 <div className="hidden grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] border-b border-gray-200 px-4 py-3 text-sm font-medium text-muted-foreground dark:border-slate-800 lg:grid">
                   <span>Bàn</span>

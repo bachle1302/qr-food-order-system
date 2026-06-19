@@ -9,6 +9,7 @@ import {
   getAuthRole,
   type AuthRole,
 } from "@/shared/auth/auth-storage";
+import { NotificationBell } from "@/shared/notifications/notification-bell";
 import {
   ClipboardList,
   Home,
@@ -224,6 +225,7 @@ export function ManagementShell({ children }: ManagementShellProps) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <NotificationBell />
                 <Link
                   className="rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-sm text-foreground transition hover:border-primary hover:text-primary dark:border-slate-800"
                   href="/staff/orders"
