@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Save, Trash2, X } from "lucide-react";
+import { ImagePlus, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCategories } from "@/features/admin/categories/api/categories.client";
 import type { AdminCategory } from "@/features/admin/categories/types";
 import { ApiError } from "@/shared/api/error";
 import { getAccessToken } from "@/shared/auth/token-storage";
+import { env } from "@/shared/config/env";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorState } from "@/shared/ui/error-state";
 import { LoadingState } from "@/shared/ui/loading-state";
@@ -17,6 +18,7 @@ import {
   getDishes,
   updateDish,
 } from "../api/dishes.client";
+import { uploadDishImageToCloudinary } from "../api/cloudinary-upload.client";
 import type { AdminDish, DishPayload } from "../types";
 
 type FormState = {
@@ -108,11 +110,17 @@ export function AdminDishesPage() {
     useState<AvailableFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [activeDishId, setActiveDishId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const isEditing = Boolean(form.id);
+  const isCloudinaryConfigured = Boolean(
+    env.cloudinaryCloudName && env.cloudinaryUploadPreset,
+  );
 
   const categoryNameById = useMemo(
     () =>
@@ -182,6 +190,8 @@ export function AdminDishesPage() {
       ...EMPTY_FORM,
       categoryId: categories[0]?.id ?? "",
     });
+    setSelectedImageFile(null);
+    setImageUploadError(null);
   }
 
   function startEdit(dish: AdminDish) {
@@ -194,8 +204,50 @@ export function AdminDishesPage() {
       categoryId: dish.categoryId,
       available: dish.available,
     });
+    setSelectedImageFile(null);
+    setImageUploadError(null);
     setError(null);
     setNotice(null);
+  }
+
+  function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setSelectedImageFile(file);
+    setImageUploadError(null);
+  }
+
+  async function handleUploadImage() {
+    if (!selectedImageFile) {
+      setImageUploadError("Vui lòng chọn ảnh trước khi upload.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setImageUploadError(null);
+    setNotice(null);
+
+    try {
+      const secureUrl = await uploadDishImageToCloudinary(selectedImageFile);
+      setForm((current) => ({
+        ...current,
+        imageUrl: secureUrl,
+      }));
+      setSelectedImageFile(null);
+      setNotice("Đã upload ảnh món ăn.");
+    } catch (uploadError) {
+      setImageUploadError(getErrorMessage(uploadError));
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }
+
+  function clearImageUrl() {
+    setForm((current) => ({
+      ...current,
+      imageUrl: "",
+    }));
+    setSelectedImageFile(null);
+    setImageUploadError(null);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -284,7 +336,7 @@ export function AdminDishesPage() {
               {isEditing ? "Sửa món ăn" : "Tạo món ăn mới"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Dùng imageUrl dạng chuỗi, chưa upload ảnh trực tiếp trong màn này.
+              Chọn ảnh để upload lên Cloudinary hoặc nhập trực tiếp imageUrl.
             </p>
           </div>
           {isEditing ? (
@@ -349,7 +401,7 @@ export function AdminDishesPage() {
             </label>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-3">
             <label className="grid gap-1 text-sm text-foreground">
               Mô tả
               <input
@@ -364,20 +416,96 @@ export function AdminDishesPage() {
                 value={form.description}
               />
             </label>
-            <label className="grid gap-1 text-sm text-foreground">
-              imageUrl
-              <input
-                className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    imageUrl: event.target.value,
-                  }))
-                }
-                placeholder="https://..."
-                value={form.imageUrl}
-              />
-            </label>
+            <div className="grid gap-3 border-y border-border py-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <ImagePlus className="size-4 text-primary" />
+                    Ảnh món ăn
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Upload ảnh lên Cloudinary để lấy secure_url, hoặc nhập imageUrl thủ công.
+                  </p>
+                  {!isCloudinaryConfigured ? (
+                    <p className="mt-2 text-xs text-destructive">
+                      Chưa cấu hình Cloudinary. Vui lòng thêm NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME và NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.
+                    </p>
+                  ) : null}
+                </div>
+                {form.imageUrl ? (
+                  <Button onClick={clearImageUrl} type="button" variant="outline">
+                    <X />
+                    Xóa ảnh
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-[14rem_minmax(0,1fr)]">
+                <div className="overflow-hidden rounded-lg border border-border bg-muted">
+                  {form.imageUrl ? (
+                    <div
+                      aria-label="Ảnh món ăn"
+                      className="aspect-[4/3] bg-cover bg-center"
+                      role="img"
+                      style={{ backgroundImage: `url("${form.imageUrl}")` }}
+                    />
+                  ) : (
+                    <div className="flex aspect-[4/3] items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                      Chưa có ảnh
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-3">
+                  <label className="grid gap-1 text-sm text-foreground">
+                    Chọn ảnh từ máy
+                    <input
+                      accept="image/*"
+                      className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground"
+                      onChange={handleImageFileChange}
+                      type="file"
+                    />
+                  </label>
+
+                  {selectedImageFile ? (
+                    <p className="text-xs text-muted-foreground">
+                      Đã chọn: {selectedImageFile.name}
+                    </p>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      disabled={isUploadingImage || !selectedImageFile}
+                      onClick={handleUploadImage}
+                      type="button"
+                      variant="outline"
+                    >
+                      <Upload />
+                      {isUploadingImage ? "Đang upload..." : "Upload ảnh"}
+                    </Button>
+                  </div>
+
+                  {imageUploadError ? (
+                    <p className="text-sm text-destructive">{imageUploadError}</p>
+                  ) : null}
+
+                  <label className="grid gap-1 text-sm text-foreground">
+                    imageUrl
+                    <input
+                      className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          imageUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://res.cloudinary.com/..."
+                      value={form.imageUrl}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -32,12 +32,20 @@ MONGODB_URI=mongodb+srv://<username>:<password>@your-cluster.mongodb.net/qrfood?
 JWT_SECRET=your-secure-base64-encoded-at-least-256bit-secret-key-here
 CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
 NEXT_PUBLIC_API_BASE_URL=https://your-backend-api-domain.com
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your-unsigned-upload-preset
 APP_SEED_ENABLED=false
 APP_RATE_LIMIT_ENABLED=true
 ```
 
 > [!WARNING]
 > Never commit `.env` or `.env.production` files containing real production secrets to version control.
+
+### Cloudinary image upload
+* `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` are used by the frontend Admin Dishes page to upload dish images directly to Cloudinary.
+* The upload preset must be unsigned.
+* Do not expose or commit `CLOUDINARY_API_SECRET` in frontend environment variables.
+* In production, restrict the unsigned preset in Cloudinary by folder, allowed formats, and max file size.
 
 ---
 
