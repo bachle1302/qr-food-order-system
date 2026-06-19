@@ -310,6 +310,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
 SERVER_API_BASE_URL=http://backend:8017
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
 
 APP_SEED_ENABLED=true
 APP_RATE_LIMIT_ENABLED=true
@@ -326,9 +328,13 @@ For local frontend development without Docker, use:
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8017
 SERVER_API_BASE_URL=http://localhost:8017
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
 ```
 
 For Docker Compose, `SERVER_API_BASE_URL=http://backend:8017` is used by the Next.js server inside the Docker network.
+
+Cloudinary upload uses an unsigned upload preset from the browser. Never put `CLOUDINARY_API_SECRET` in frontend env variables.
 
 ## Running with Docker
 
