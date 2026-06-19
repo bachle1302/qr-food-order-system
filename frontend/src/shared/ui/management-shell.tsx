@@ -7,8 +7,10 @@ import {
   clearAuthSession,
   getAccessToken,
   getAuthRole,
+  getRefreshToken,
   type AuthRole,
 } from "@/shared/auth/auth-storage";
+import { isJwtExpired } from "@/shared/auth/jwt";
 import { NotificationBell } from "@/shared/notifications/notification-bell";
 import {
   ClipboardList,
@@ -101,7 +103,9 @@ export function ManagementShell({ children }: ManagementShellProps) {
 
   useEffect(() => {
     const token = getAccessToken();
-    if (!token) {
+    const refreshToken = getRefreshToken();
+    if (!token || !refreshToken || isJwtExpired(refreshToken)) {
+      clearAuthSession();
       router.push("/login");
       return;
     }

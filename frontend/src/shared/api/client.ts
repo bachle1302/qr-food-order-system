@@ -5,6 +5,7 @@ import {
   getRefreshToken,
   updateAuthTokens,
 } from "@/shared/auth/auth-storage";
+import { isJwtExpired } from "@/shared/auth/jwt";
 import { ApiError, getErrorMessage } from "./error";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -30,6 +31,7 @@ type RefreshResponse = {
 };
 
 let refreshRequest: Promise<RefreshResponse> | null = null;
+const AUTH_ERROR_STATUSES = new Set([401, 403]);
 
 async function parseResponse(response: Response) {
   if (response.status === 204) {
@@ -78,12 +80,7 @@ async function executeRequest<T>(
 
   const data = await parseResponse(response);
 
-  if (
-    response.status === 401 &&
-    token &&
-    !options.skipAuthRefresh &&
-    !hasRetried
-  ) {
+  if (AUTH_ERROR_STATUSES.has(response.status) && token && !options.skipAuthRefresh && !hasRetried) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       return executeRequest<T>(
@@ -95,6 +92,11 @@ async function executeRequest<T>(
         true,
       );
     }
+  }
+
+  if (AUTH_ERROR_STATUSES.has(response.status) && token && hasRetried) {
+    clearAuthSession();
+    redirectToLoginIfProtected();
   }
 
   if (!response.ok) {
@@ -111,6 +113,12 @@ async function executeRequest<T>(
 async function refreshAccessToken() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
+    clearAuthSession();
+    redirectToLoginIfProtected();
+    return null;
+  }
+
+  if (isJwtExpired(refreshToken)) {
     clearAuthSession();
     redirectToLoginIfProtected();
     return null;

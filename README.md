@@ -31,6 +31,28 @@ Live demo will be added soon.
 |---|---|
 | ![Staff Orders Mobile](./docs/screenshots/staff-orders-dashboard_mobile.png) | ![Staff Order Detail Mobile](./docs/screenshots/staff-orders-dashboard_mobile_detail.png) |
 
+## Feature Spotlight
+
+> These are the completed capabilities that make the project more than a basic CRUD demo.
+
+| Area | Completed Functionality |
+|---|---|
+| Secure QR ordering | Table QR links use backend-generated `qrToken` values instead of raw `tableId`, with admin token regeneration and QR PNG download/copy support. |
+| Guest check-in | Customers check in from `/qr/[qrToken]`, keep their session in browser storage, and can return to the same QR page without logging in. |
+| Customer order tracking | Customers see only orders that belong to their own `customerSessionId`; new guests at the same table cannot see old orders. |
+| Staff/Kitchen operations | Staff can filter orders, sort older orders first, focus on unserved orders, update status, and receive realtime SSE updates. |
+| Realtime notifications | Staff/Admin get toast notifications and a notification bell for new orders and status changes; customers get toast updates when their own order status changes. |
+| Admin management | Admin can manage tables, categories, dishes, discounts, users/staff, QR codes, Cloudinary dish images, and revenue summaries. |
+| Cloudinary image upload | Admin dish form supports uploading real dish images to Cloudinary with an unsigned upload preset and stores the returned `secure_url` as `imageUrl`. |
+| Production UX | Admin and staff dashboards show skeleton loading states and a cold-start notice for free backend hosting delays. |
+| Deployment ready | Frontend, backend, MongoDB, environment templates, Docker Compose, and deployment notes are documented for local and production use. |
+
+### Completed User Flows
+
+- Customer: scan QR -> check in -> browse menu -> add dishes/notes -> submit order -> track status.
+- Staff: log in -> watch realtime order list -> filter/sort work queue -> update order status.
+- Admin: log in -> manage master data -> generate table QR codes -> manage users -> review revenue dashboard.
+
 ## Project Overview
 
 QR Food Order System is a fullstack restaurant management system designed for QR-based table ordering. Customers can scan a table QR code, check in, browse the menu, add dishes to cart, and place orders without creating an account.
@@ -47,22 +69,29 @@ The system reduces manual ordering steps in restaurants and improves communicati
 - Add dishes to cart with item notes and order notes.
 - Place public QR orders without logging in.
 - View only the orders that belong to the current `customerSessionId`.
+- Receive toast notifications when their own order status changes.
+- Restore the guest session from the same browser when revisiting a QR link.
 
 ### Staff
 
 - View and filter managed orders.
 - Filter orders by status, table, and date range.
+- Focus on unserved orders and sort older orders first for kitchen/staff workflow.
 - Update order status through the validated backend workflow.
 - Receive realtime order events through Server-Sent Events.
+- See toast notifications and notification bell updates for new orders and status changes.
 
 ### Admin
 
 - Manage restaurant tables.
 - Regenerate table QR tokens.
 - View and copy QR links for customer ordering.
+- View and download QR code PNGs for tables.
 - Manage categories, dishes, discounts, and users.
+- Upload dish images to Cloudinary or manage dish image URLs manually through the admin dish flow.
 - Toggle user active/inactive status.
 - View revenue and daily order summaries.
+- Use the same notification bell and protected management shell as staff/admin pages.
 
 ### Security
 
@@ -92,6 +121,27 @@ Orders can be linked to a `customerSessionId`. The public session order endpoint
 
 The backend exposes a protected SSE endpoint at `/api/orders/events`. When a customer creates an order or staff changes an order status, the backend broadcasts realtime events such as `order-created` and `order-status-changed`.
 
+The frontend consumes these events in the staff dashboard, updates the order list without a manual refresh, and shows toast notifications plus unread notification bell entries for operational visibility.
+
+### Frontend Notification System
+
+The frontend includes a global in-memory/localStorage notification store with a toast stack and notification bell. Notifications are capped at 50 items and persisted under `qrfood_notifications`.
+
+Staff/Admin receive notifications from real SSE events. Customers receive toast updates when polling detects that an existing order in their current session changed status. No mock notification data or backend notification table is required.
+
+### Cloudinary Dish Image Upload
+
+Admin dish management supports browser-side image upload to Cloudinary. The frontend uploads selected image files to Cloudinary using:
+
+```env
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
+```
+
+The upload client validates that the selected file is an image and limits file size to 5MB. After a successful upload, Cloudinary returns a `secure_url`, which is saved as the dish `imageUrl`.
+
+This flow uses an unsigned upload preset for browser upload. Do not put `CLOUDINARY_API_SECRET` or any Cloudinary secret in frontend environment variables.
+
 ### Order Status Workflow
 
 Orders use a defined status lifecycle:
@@ -109,6 +159,16 @@ Admin and staff operations are protected by Spring Security and JWT. Admin-only 
 ### Frontend Caching Strategy
 
 Public menu data uses Next.js server-side fetch caching with revalidation for categories and dishes. QR table lookup uses `no-store` because token validity and table state should be checked fresh. Protected dashboards use client-side authenticated API calls.
+
+### Cold Start Friendly Loading
+
+Admin and staff pages include skeleton loading states and a free-hosting cold-start notice after 5 seconds:
+
+```text
+Đang khởi động máy chủ miễn phí, lần đầu có thể mất 30–60 giây...
+```
+
+This keeps Vercel/Render Free deployments from showing a blank screen during the first backend wake-up.
 
 ### Fullstack Production-Oriented Structure
 
@@ -466,6 +526,8 @@ java -jar target/rms-backend-1.0.0.jar
 - Added order status transition validation to protect operational workflow consistency.
 - Built JWT authentication and role-based authorization for `ADMIN` and `STAFF`.
 - Added frontend auth storage, refresh token handling, and middleware route guards.
+- Added global frontend toast notifications, notification bell, and customer order status notifications.
+- Improved production UX with dashboard skeleton loading and Render Free cold-start messaging.
 - Separated public cached menu fetches from protected dashboard API calls.
 - Dockerized frontend, backend, and MongoDB for consistent local development.
 
@@ -483,6 +545,13 @@ This project is not only a CRUD application. It demonstrates secure QR-based ord
 - [x] Admin table management and QR regeneration
 - [x] Admin category, dish, discount, and user management
 - [x] Admin revenue summary dashboard
+- [x] Admin table QR display, copy link, and QR PNG download
+- [x] Admin dish image upload flow
+- [x] Staff mobile order detail experience
+- [x] Staff order filters for unserved items and oldest-first sorting
+- [x] Frontend notification toast and notification bell
+- [x] Customer order status change notifications
+- [x] Cold-start friendly loading states for hosted backend delays
 - [x] Docker Compose setup for frontend, backend, and MongoDB
 - [x] Frontend auth refresh handling and middleware guards
 - [ ] Dedicated frontend kitchen screen
