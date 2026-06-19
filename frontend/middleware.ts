@@ -21,6 +21,10 @@ export function middleware(request: NextRequest) {
   const role = getAuthRole(request);
   const authenticated = hasAuth(request);
 
+  if (pathname === "/" && authenticated) {
+    return redirectTo(request, role === "ADMIN" ? "/admin" : "/staff/orders");
+  }
+
   if (pathname === "/login" && authenticated) {
     return redirectTo(request, role === "ADMIN" ? "/admin" : "/staff/orders");
   }
@@ -43,5 +47,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/admin/:path*", "/staff/:path*"],
+  matcher: ["/", "/login", "/admin/:path*", "/staff/:path*"],
 };

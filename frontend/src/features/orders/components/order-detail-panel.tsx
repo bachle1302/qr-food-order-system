@@ -4,10 +4,12 @@ import {
   formatCurrency,
   formatDateTime,
   getDishLabel,
+  getDishImageUrl,
   getCustomerLabel,
   getOrderItemCount,
   getOrderTotal,
   getTableLabel,
+  type DishImageMap,
   type DishNameMap,
   type TableNameMap,
 } from "../lib/order-ui";
@@ -17,6 +19,7 @@ import { OrderStatusBadge } from "./order-status-badge";
 type OrderDetailPanelProps = {
   actions: OrderStatus[];
   isUpdating?: boolean;
+  dishImageById?: DishImageMap;
   dishNameById?: DishNameMap;
   tableNameById?: TableNameMap;
   onUpdateStatus: (status: OrderStatus) => void;
@@ -25,6 +28,7 @@ type OrderDetailPanelProps = {
 
 export function OrderDetailPanel({
   actions,
+  dishImageById,
   dishNameById,
   tableNameById,
   isUpdating,
@@ -87,7 +91,7 @@ export function OrderDetailPanel({
       <div className="space-y-4 p-5">
         <div className="space-y-3">
           {order.items.map((item, index) => {
-            const imageUrl = item.dishImageUrl;
+            const imageUrl = item.dishImageUrl || getDishImageUrl(item.dishId, dishImageById);
             const name = item.dishName || getDishLabel(item.dishId, dishNameById);
             return (
               <div

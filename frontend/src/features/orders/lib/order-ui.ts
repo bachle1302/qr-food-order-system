@@ -52,10 +52,18 @@ export function formatDateTime(value: string | null | undefined) {
 }
 
 export type DishNameMap = Record<string, string>;
+export type DishImageMap = Record<string, string>;
 export type TableNameMap = Record<string, string>;
 
 export function getDishLabel(dishId: string, dishNameById?: DishNameMap) {
   return dishNameById?.[dishId] ?? `Món chưa tìm thấy (${dishId})`;
+}
+
+export function getDishImageUrl(
+  dishId: string,
+  dishImageById?: DishImageMap,
+) {
+  return dishImageById?.[dishId] ?? "";
 }
 
 export function getCustomerLabel(order: Order) {

@@ -5,6 +5,7 @@ import {
   CalendarClock,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Table2,
   Utensils,
 } from "lucide-react";
@@ -34,13 +35,23 @@ import {
   getTableLabel,
   ORDER_STATUS_LABELS,
   STATUS_SUMMARY,
+  type DishImageMap,
   type DishNameMap,
   type TableNameMap,
 } from "../lib/order-ui";
 import { OrderDetailPanel } from "./order-detail-panel";
+import { MobileOrderCard } from "./mobile-order-card";
+import { MobileOrderDetailSheet } from "./mobile-order-detail-sheet";
 import { OrderStatusBadge } from "./order-status-badge";
 
 type StatusFilter = (typeof ORDER_STATUSES)[number];
+
+const UNSERVED_STATUSES = new Set<OrderStatus>([
+  "NEW",
+  "CONFIRMED",
+  "PREPARING",
+  "READY",
+]);
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -77,12 +88,16 @@ function normalizeSearch(value: string) {
 export function StaffOrdersDashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [dishImageById, setDishImageById] = useState<DishImageMap>({});
   const [dishNameById, setDishNameById] = useState<DishNameMap>({});
   const [tableNameById, setTableNameById] = useState<TableNameMap>({});
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [tableIdFilter, setTableIdFilter] = useState("");
   const [customerFilter, setCustomerFilter] = useState("");
+  const [showUnservedOnly, setShowUnservedOnly] = useState(false);
+  const [sortOldestFirst, setSortOldestFirst] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +110,6 @@ export function StaffOrdersDashboard() {
       const response = await getManagedOrders(
         {
           fromDate: fromDate || undefined,
-          status: statusFilter,
           tableId: tableIdFilter.trim() || undefined,
           toDate: toDate || undefined,
         },
@@ -104,13 +118,20 @@ export function StaffOrdersDashboard() {
       setOrders(response);
       setSelectedOrderId((current) => current ?? response[0]?.id ?? null);
     },
-    [fromDate, statusFilter, tableIdFilter, toDate],
+    [fromDate, tableIdFilter, toDate],
   );
 
   const loadDishes = useCallback(async (accessToken: string) => {
     const dishes = await getOrderDishes(accessToken);
     setDishNameById(
       Object.fromEntries(dishes.map((dish) => [dish.id, dish.name])),
+    );
+    setDishImageById(
+      Object.fromEntries(
+        dishes
+          .filter((dish) => Boolean(dish.imageUrl))
+          .map((dish) => [dish.id, dish.imageUrl as string]),
+      ),
     );
   }, []);
 
@@ -177,14 +198,56 @@ export function StaffOrdersDashboard() {
 
   const customerSearch = normalizeSearch(customerFilter);
   const visibleOrders = useMemo(() => {
-    if (!customerSearch) {
-      return orders;
+    const filteredOrders = orders.filter((order) => {
+      if (statusFilter !== "ALL" && order.status !== statusFilter) {
+        return false;
+      }
+
+      if (showUnservedOnly && !UNSERVED_STATUSES.has(order.status)) {
+        return false;
+      }
+
+      if (!customerSearch) {
+        return true;
+      }
+
+      const searchable = [
+        order.id,
+        order.customerPhone ?? "",
+        getCustomerLabel(order),
+        order.tableId,
+        getTableLabel(order.tableId, tableNameById),
+        ...order.items.map((item) => item.dishName || getDishLabel(item.dishId, dishNameById)),
+      ]
+        .join(" ")
+        .toLocaleLowerCase("vi-VN");
+
+      return searchable.includes(customerSearch);
+    });
+
+    if (!sortOldestFirst) {
+      return filteredOrders;
     }
 
-    return orders.filter((order) =>
-      getCustomerLabel(order).toLocaleLowerCase("vi-VN").includes(customerSearch),
-    );
-  }, [customerSearch, orders]);
+    return [...filteredOrders].sort((firstOrder, secondOrder) => {
+      const firstCreatedAt = new Date(firstOrder.createdAt).getTime();
+      const secondCreatedAt = new Date(secondOrder.createdAt).getTime();
+
+      if (Number.isNaN(firstCreatedAt) || Number.isNaN(secondCreatedAt)) {
+        return firstOrder.id.localeCompare(secondOrder.id, "vi-VN");
+      }
+
+      return firstCreatedAt - secondCreatedAt;
+    });
+  }, [
+    customerSearch,
+    dishNameById,
+    orders,
+    showUnservedOnly,
+    sortOldestFirst,
+    statusFilter,
+    tableNameById,
+  ]);
 
   const selectedOrder = useMemo(
     () => visibleOrders.find((order) => order.id === selectedOrderId) ?? null,
@@ -226,6 +289,19 @@ export function StaffOrdersDashboard() {
     [orders],
   );
 
+  const statusTabCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        ORDER_STATUSES.map((status) => [
+          status,
+          status === "ALL"
+            ? orders.length
+            : orders.filter((order) => order.status === status).length,
+        ]),
+      ) as Record<StatusFilter, number>,
+    [orders],
+  );
+
   async function handleUpdateStatus(orderId: string, status: OrderStatus) {
     if (!token) {
       setError("Vui lòng đăng nhập để cập nhật đơn hàng.");
@@ -249,6 +325,8 @@ export function StaffOrdersDashboard() {
   function resetFilters() {
     setCustomerFilter("");
     setFromDate("");
+    setShowUnservedOnly(false);
+    setSortOldestFirst(false);
     setStatusFilter("ALL");
     setTableIdFilter("");
     setToDate("");
@@ -313,7 +391,69 @@ export function StaffOrdersDashboard() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <div className="mt-5 space-y-4 lg:hidden">
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  onChange={(event) => setCustomerFilter(event.target.value)}
+                  placeholder="Tìm khách, bàn, mã đơn..."
+                  value={customerFilter}
+                />
+              </label>
+
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                {ORDER_STATUSES.map((status) => {
+                  const active = statusFilter === status;
+                  return (
+                    <button
+                      className={`shrink-0 rounded-full border px-3 py-2 text-sm font-medium transition ${
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-muted-foreground"
+                      }`}
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      type="button"
+                    >
+                      {status === "ALL" ? "Tất cả" : ORDER_STATUS_LABELS[status]}
+                      <span className="ml-2 rounded-full bg-background/70 px-1.5 py-0.5 text-xs text-foreground">
+                        {statusTabCounts[status]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 border-y border-border py-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                  <SlidersHorizontal className="size-4 text-primary" />
+                  Tùy chọn
+                </span>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-muted-foreground transition hover:border-primary hover:text-foreground">
+                  <input
+                    checked={showUnservedOnly}
+                    className="size-4 accent-primary"
+                    onChange={(event) => setShowUnservedOnly(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Chỉ hiện món chưa phục vụ</span>
+                </label>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-muted-foreground transition hover:border-primary hover:text-foreground">
+                  <input
+                    checked={sortOldestFirst}
+                    className="size-4 accent-primary"
+                    onChange={(event) => setSortOldestFirst(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Order trước lên đầu</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 hidden gap-3 md:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
               <label className="space-y-1">
                 <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <CalendarClock className="size-4 text-muted-foreground" />
@@ -349,13 +489,13 @@ export function StaffOrdersDashboard() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="mt-4 hidden gap-3 md:grid md:grid-cols-3">
               <label className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                   onChange={(event) => setCustomerFilter(event.target.value)}
-                  placeholder="Tên khách"
+                  placeholder="Tên khách, bàn, mã đơn..."
                   value={customerFilter}
                 />
               </label>
@@ -387,7 +527,7 @@ export function StaffOrdersDashboard() {
           <div className="space-y-5 p-4 md:p-6">
             {error ? <ErrorState message={error} /> : null}
 
-            <div className="flex gap-3 overflow-x-auto pb-1">
+            <div className="hidden gap-3 overflow-x-auto pb-1 lg:flex">
               {tableCards.length === 0 ? (
                 <div className="min-w-40 border-y border-dashed border-gray-200 py-4 dark:border-slate-800 text-sm text-muted-foreground">
                   Chưa có bàn từ dữ liệu đơn hàng.
@@ -429,7 +569,7 @@ export function StaffOrdersDashboard() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="hidden flex-wrap gap-2 lg:flex">
               {summaryCounts.map((summary) => (
                 <span
                   className="rounded-md border border-border bg-muted px-3 py-1 text-xs font-medium text-foreground"
@@ -455,7 +595,25 @@ export function StaffOrdersDashboard() {
             ) : null}
 
             {visibleOrders.length > 0 ? (
-              <div className="overflow-hidden border border-gray-200 dark:border-slate-800 rounded-lg">
+              <div className="overflow-hidden border-y border-border lg:hidden">
+                {visibleOrders.map((order) => (
+                  <MobileOrderCard
+                    dishNameById={dishNameById}
+                    isActive={selectedOrderId === order.id}
+                    key={order.id}
+                    onSelect={() => {
+                      setSelectedOrderId(order.id);
+                      setIsMobileDetailOpen(true);
+                    }}
+                    order={order}
+                    tableNameById={tableNameById}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {visibleOrders.length > 0 ? (
+              <div className="hidden overflow-hidden rounded-lg border border-gray-200 dark:border-slate-800 lg:block">
                 <div className="hidden grid-cols-[5rem_minmax(9rem,1fr)_minmax(16rem,1.8fr)_12rem_9rem_11rem] border-b border-gray-200 px-4 py-3 text-sm font-medium text-muted-foreground dark:border-slate-800 lg:grid">
                   <span>Bàn</span>
                   <span>Khách hàng</span>
@@ -591,17 +749,36 @@ export function StaffOrdersDashboard() {
           </div>
         </section>
 
-        <OrderDetailPanel
+        <div className="hidden xl:block">
+          <OrderDetailPanel
+            actions={selectedOrder ? ORDER_TRANSITIONS[selectedOrder.status] : []}
+            dishImageById={dishImageById}
+            dishNameById={dishNameById}
+            tableNameById={tableNameById}
+            isUpdating={selectedOrder ? updatingOrderId === selectedOrder.id : false}
+            onUpdateStatus={(status) => {
+              if (selectedOrder) {
+                handleUpdateStatus(selectedOrder.id, status);
+              }
+            }}
+            order={selectedOrder}
+          />
+        </div>
+
+        <MobileOrderDetailSheet
           actions={selectedOrder ? ORDER_TRANSITIONS[selectedOrder.status] : []}
+          dishImageById={dishImageById}
           dishNameById={dishNameById}
-          tableNameById={tableNameById}
+          isOpen={isMobileDetailOpen}
           isUpdating={selectedOrder ? updatingOrderId === selectedOrder.id : false}
+          onClose={() => setIsMobileDetailOpen(false)}
           onUpdateStatus={(status) => {
             if (selectedOrder) {
               handleUpdateStatus(selectedOrder.id, status);
             }
           }}
           order={selectedOrder}
+          tableNameById={tableNameById}
         />
     </div>
   );

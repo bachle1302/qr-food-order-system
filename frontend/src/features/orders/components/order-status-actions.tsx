@@ -8,6 +8,16 @@ type OrderStatusActionsProps = {
   onSelect: (status: OrderStatus) => void;
 };
 
+const ACTION_LABELS: Partial<Record<OrderStatus, string>> = {
+  CONFIRMED: "Nhận đơn",
+  PREPARING: "Bắt đầu nấu",
+  READY: "Sẵn sàng",
+  SERVED: "Đã phục vụ",
+  PAID: "Thanh toán",
+  COMPLETED: "Hoàn tất",
+  CANCELLED: "Hủy",
+};
+
 export function OrderStatusActions({
   actions,
   disabled,
@@ -31,7 +41,7 @@ export function OrderStatusActions({
           size="sm"
           variant={status === "CANCELLED" ? "destructive" : "outline"}
         >
-          {ORDER_STATUS_LABELS[status]}
+          {ACTION_LABELS[status] ?? ORDER_STATUS_LABELS[status]}
         </Button>
       ))}
     </div>
