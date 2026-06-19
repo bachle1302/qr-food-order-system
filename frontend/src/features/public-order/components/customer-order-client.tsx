@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/api/error";
+import { useNotifications } from "@/shared/notifications/notification-store";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { getCustomerSessionOrders } from "../api/customer-orders.client";
 import { createQrOrder } from "../api/public-order.client";
@@ -94,6 +95,10 @@ function formatDateTime(value: string) {
 
 function getOrderStatusLabel(status: string) {
   return ORDER_STATUS_LABELS[status] ?? status;
+}
+
+function getShortOrderId(orderId: string) {
+  return orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId;
 }
 
 function hasOpenOrder(orders: OrderResponse[]) {
@@ -200,6 +205,7 @@ export function CustomerOrderClient({
   categories,
   dishes,
 }: CustomerOrderClientProps) {
+  const { addNotification } = useNotifications();
   const [selectedCategoryId, setSelectedCategoryId] =
     useState<string>(ALL_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState("");
@@ -222,6 +228,8 @@ export function CustomerOrderClient({
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const categoryPillRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const lastScrollYRef = useRef(0);
+  const knownOrderStatusRef = useRef<Record<string, string>>({});
+  const hasLoadedCustomerOrdersRef = useRef(false);
 
   const loadCustomerOrders = useCallback(
     async (session: CustomerSession, options?: { silent?: boolean }) => {
@@ -235,12 +243,39 @@ export function CustomerOrderClient({
           session.sessionId,
           qrToken,
         );
+        const previousStatuses = knownOrderStatusRef.current;
+
+        if (hasLoadedCustomerOrdersRef.current) {
+          for (const order of orders) {
+            const previousStatus = previousStatuses[order.id];
+            if (previousStatus && previousStatus !== order.status) {
+              addNotification({
+                message: `Đơn #${getShortOrderId(order.id)}: ${getOrderStatusLabel(order.status)}`,
+                title: "Trạng thái đơn đã cập nhật",
+                type:
+                  order.status === "READY" ||
+                  order.status === "SERVED" ||
+                  order.status === "PAID" ||
+                  order.status === "COMPLETED"
+                    ? "success"
+                    : "info",
+              });
+            }
+          }
+        }
+
+        knownOrderStatusRef.current = Object.fromEntries(
+          orders.map((order) => [order.id, order.status]),
+        );
+        hasLoadedCustomerOrdersRef.current = true;
         setCustomerOrders(orders);
       } catch (error) {
         if (isCustomerSessionError(error)) {
           clearStoredSession(qrToken);
           setCustomerSession(null);
           setCustomerOrders([]);
+          knownOrderStatusRef.current = {};
+          hasLoadedCustomerOrdersRef.current = false;
           setCheckInMessage(
             "Phiên gọi món đã hết hạn hoặc không còn khớp với bàn. Vui lòng check-in lại để xem đơn.",
           );
@@ -258,7 +293,7 @@ export function CustomerOrderClient({
         }
       }
     },
-    [qrToken],
+    [addNotification, qrToken],
   );
 
   useEffect(() => {
@@ -478,6 +513,8 @@ export function CustomerOrderClient({
   function handleCheckedIn(session: CustomerSession) {
     storeCustomerSession(qrToken, session);
     setCustomerSession(session);
+    knownOrderStatusRef.current = {};
+    hasLoadedCustomerOrdersRef.current = false;
     setCheckInMessage(null);
     setSubmitError(null);
     setActiveTab("menu");
@@ -488,6 +525,8 @@ export function CustomerOrderClient({
     clearStoredSession(qrToken);
     setCustomerSession(null);
     setCustomerOrders([]);
+    knownOrderStatusRef.current = {};
+    hasLoadedCustomerOrdersRef.current = false;
     setCart([]);
     setOrderNote("");
     setSuccessOrder(null);
@@ -521,6 +560,16 @@ export function CustomerOrderClient({
       });
 
       setSuccessOrder(order);
+      knownOrderStatusRef.current = {
+        ...knownOrderStatusRef.current,
+        [order.id]: order.status,
+      };
+      hasLoadedCustomerOrdersRef.current = true;
+      addNotification({
+        message: "Nhân viên sẽ xác nhận đơn của bạn.",
+        title: "Đã gửi đơn thành công",
+        type: "success",
+      });
       setCustomerOrders((currentOrders) => [
         order,
         ...currentOrders.filter((currentOrder) => currentOrder.id !== order.id),
@@ -535,6 +584,8 @@ export function CustomerOrderClient({
       if (isCustomerSessionError(error)) {
         clearStoredSession(qrToken);
         setCustomerSession(null);
+        knownOrderStatusRef.current = {};
+        hasLoadedCustomerOrdersRef.current = false;
         setCheckInMessage(
           "Phiên gọi món đã hết hạn hoặc không còn khớp với bàn. Vui lòng check-in lại để gửi đơn.",
         );

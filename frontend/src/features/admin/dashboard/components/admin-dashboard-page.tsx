@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays,
   Clock,
   ChefHat,
   CheckCircle2,
@@ -18,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import type { OrderStatus } from "@/features/orders/types";
 import { ApiError } from "@/shared/api/error";
 import { getAccessToken } from "@/shared/auth/token-storage";
+import { useDelayedLoadingMessage } from "@/shared/hooks/use-delayed-loading-message";
+import { ColdStartNotice } from "@/shared/ui/cold-start-notice";
 import { ErrorState } from "@/shared/ui/error-state";
 import { LoadingState } from "@/shared/ui/loading-state";
 import { getOrderDishes } from "@/features/orders/api/dishes.client";
@@ -26,7 +27,6 @@ import {
   getDailyRevenue,
   getDailySummary,
   getManagedOrders,
-  getMonthlyRevenue,
 } from "../api/dashboard.client";
 import type { DailySummary, DashboardOrder } from "../types";
 import {
@@ -56,10 +56,6 @@ function getTodayInputValue() {
   const date = new Date();
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
   return date.toISOString().slice(0, 10);
-}
-
-function getMonthInputValue(date: string) {
-  return date.slice(0, 7);
 }
 
 function getErrorMessage(error: unknown) {
@@ -137,17 +133,78 @@ const StatusBadge = ({ status }: { status: OrderStatus }) => {
   }
 };
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-muted ${className}`} />;
+}
+
+function AdminDashboardSkeleton({
+  showColdStartMessage,
+}: {
+  showColdStartMessage: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {["revenue", "orders", "average", "tables"].map((item) => (
+          <div
+            className="rounded-2xl border border-border bg-card p-6"
+            key={item}
+          >
+            <SkeletonBlock className="h-4 w-28" />
+            <SkeletonBlock className="mt-4 h-8 w-36" />
+            <SkeletonBlock className="mt-4 h-3 w-24" />
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
+          <SkeletonBlock className="h-5 w-40" />
+          <SkeletonBlock className="mt-6 h-72 w-full" />
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <SkeletonBlock className="h-5 w-44" />
+          <div className="mt-6 space-y-5">
+            {["one", "two", "three", "four"].map((item) => (
+              <div className="flex items-center gap-4" key={item}>
+                <SkeletonBlock className="size-8 rounded-full" />
+                <div className="flex-1">
+                  <SkeletonBlock className="h-4 w-32" />
+                  <SkeletonBlock className="mt-2 h-3 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <SkeletonBlock className="h-5 w-40" />
+        <div className="mt-6 space-y-3">
+          {["a", "b", "c", "d"].map((item) => (
+            <SkeletonBlock className="h-14 w-full" key={item} />
+          ))}
+        </div>
+      </div>
+
+      {showColdStartMessage ? <ColdStartNotice /> : null}
+    </div>
+  );
+}
+
 export function AdminDashboardPage() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState(getTodayInputValue);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [dailyRevenue, setDailyRevenue] = useState<number | null>(null);
-  const [monthlyRevenue, setMonthlyRevenue] = useState<number | null>(null);
   const [orders, setOrders] = useState<DashboardOrder[]>([]);
   const [dishNameById, setDishNameById] = useState<Record<string, string>>({});
   const [tableNameById, setTableNameById] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const showColdStartMessage = useDelayedLoadingMessage(
+    isLoading && Boolean(token),
+  );
 
   const loadDashboard = useCallback(async (accessToken: string, date: string) => {
     setIsLoading(true);
@@ -160,18 +217,15 @@ export function AdminDashboardPage() {
     }
 
     try {
-      const month = getMonthInputValue(date);
       const [
         nextSummary,
         nextDailyRevenue,
-        nextMonthlyRevenue,
         nextOrders,
         nextDishes,
         nextTables,
       ] = await Promise.all([
         getDailySummary(date, accessToken),
         getDailyRevenue(date, accessToken),
-        getMonthlyRevenue(month, accessToken),
         getManagedOrders({}, accessToken),
         getOrderDishes(accessToken),
         getOrderTables(accessToken),
@@ -179,7 +233,6 @@ export function AdminDashboardPage() {
 
       setSummary(nextSummary);
       setDailyRevenue(nextDailyRevenue);
-      setMonthlyRevenue(nextMonthlyRevenue);
       setOrders(nextOrders);
       setDishNameById(
         Object.fromEntries(nextDishes.map((dish) => [dish.id, dish.name]))
@@ -218,7 +271,12 @@ export function AdminDashboardPage() {
     };
   }, [loadDashboard, selectedDate]);
 
-  // --- DỮ LIỆU ĐỘNG VÀ FALLBACK ---
+  const retryDashboard = useCallback(() => {
+    if (token) {
+      void loadDashboard(token, selectedDate);
+    }
+  }, [loadDashboard, selectedDate, token]);
+
   const activeTableIds = useMemo(() => {
     return new Set(
       orders
@@ -228,7 +286,7 @@ export function AdminDashboardPage() {
   }, [orders]);
 
   const totalTablesCount = useMemo(() => {
-    return Object.keys(tableNameById).length || 25;
+    return Object.keys(tableNameById).length;
   }, [tableNameById]);
 
   const tablesServingText = useMemo(() => {
@@ -238,7 +296,6 @@ export function AdminDashboardPage() {
   const computedRevenueData = useMemo(() => {
     const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     const data = [];
-    let hasData = false;
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -257,24 +314,8 @@ export function AdminDashboardPage() {
         })
         .reduce((sum, order) => sum + (order.finalPrice || order.totalPrice || 0), 0);
 
-      if (revenue > 0) {
-        hasData = true;
-      }
-
       const dayName = weekdays[d.getDay()];
       data.push({ name: dayName, revenue });
-    }
-
-    if (!hasData) {
-      return [
-        { name: "T2", revenue: 4000000 },
-        { name: "T3", revenue: 3000000 },
-        { name: "T4", revenue: 5500000 },
-        { name: "T5", revenue: 4500000 },
-        { name: "T6", revenue: 6000000 },
-        { name: "T7", revenue: 8500000 },
-        { name: "CN", revenue: 7500000 },
-      ];
     }
 
     return data;
@@ -302,29 +343,10 @@ export function AdminDashboardPage() {
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 4);
 
-    if (sorted.length === 0) {
-      return [
-        { name: "Phở Bò Tái Nạm", sales: 145, revenue: 7975000 },
-        { name: "Cơm Tấm Sườn Bì", sales: 120, revenue: 7800000 },
-        { name: "Bún Chả Hà Nội", sales: 98, revenue: 5880000 },
-        { name: "Trà Đào Cam Sả", sales: 210, revenue: 7350000 },
-      ];
-    }
-
     return sorted;
   }, [orders, dishNameById]);
 
   const computedRecentOrders = useMemo(() => {
-    if (orders.length === 0) {
-      return [
-        { id: "#1024", table: "Bàn 12", time: "10:45", items: "2x Phở Bò, 1x Trà Đá", total: 115000, status: "NEW" as OrderStatus },
-        { id: "#1023", table: "Bàn 08", time: "10:42", items: "1x Cơm Tấm, 1x Bún Chả", total: 125000, status: "PREPARING" as OrderStatus },
-        { id: "#1022", table: "Bàn 05", time: "10:30", items: "4x Nem Rán, 2x Trà Đào", total: 230000, status: "COMPLETED" as OrderStatus },
-        { id: "#1021", table: "Bàn 15", time: "10:15", items: "1x Cơm Chiên Hải Sản", total: 70000, status: "COMPLETED" as OrderStatus },
-        { id: "#1020", table: "Bàn 02", time: "10:10", items: "2x Phở Bò", total: 110000, status: "COMPLETED" as OrderStatus },
-      ];
-    }
-
     return [...orders]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5)
@@ -391,11 +413,8 @@ export function AdminDashboardPage() {
             value={selectedDate}
           />
           <Button
-            onClick={() => {
-              if (token) {
-                void loadDashboard(token, selectedDate);
-              }
-            }}
+            disabled={isLoading}
+            onClick={retryDashboard}
             type="button"
             variant="outline"
             size="sm"
@@ -407,8 +426,17 @@ export function AdminDashboardPage() {
         </div>
       </section>
 
-      {error ? <ErrorState message={error} /> : null}
-      {isLoading ? <LoadingState label="Đang tải dashboard..." /> : null}
+      {error ? (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <ErrorState message={error} />
+          <Button className="mt-4" onClick={retryDashboard} type="button">
+            Thử lại
+          </Button>
+        </div>
+      ) : null}
+      {isLoading ? (
+        <AdminDashboardSkeleton showColdStartMessage={showColdStartMessage} />
+      ) : null}
 
       {!isLoading && !error && (
         <div className="space-y-8 animate-in fade-in duration-300">
@@ -493,6 +521,11 @@ export function AdminDashboardPage() {
             <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col">
               <h3 className="text-lg font-bold text-gray-800 dark:text-slate-100 mb-6">Món bán chạy nhất</h3>
               <div className="space-y-5 flex-1">
+                {computedTopItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Chưa có dữ liệu món bán chạy từ đơn đã thanh toán.
+                  </p>
+                ) : null}
                 {computedTopItems.map((item, index) => (
                   <div key={index} className="flex items-center gap-4">
                     <div
@@ -546,6 +579,16 @@ export function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                  {computedRecentOrders.length === 0 ? (
+                    <tr>
+                      <td
+                        className="px-6 py-8 text-center text-sm text-muted-foreground"
+                        colSpan={6}
+                      >
+                        Chưa có đơn hàng hiện tại.
+                      </td>
+                    </tr>
+                  ) : null}
                   {computedRecentOrders.map((order, index) => (
                     <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="py-4 px-6">
