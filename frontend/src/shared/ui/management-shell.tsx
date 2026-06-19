@@ -145,7 +145,8 @@ export function ManagementShell({ children }: ManagementShellProps) {
 
   function handleLogout() {
     clearAuthSession();
-    router.push("/login");
+    router.replace("/login");
+    router.refresh();
   }
 
   return (
@@ -237,6 +238,14 @@ export function ManagementShell({ children }: ManagementShellProps) {
                     Quản trị
                   </Link>
                 )}
+                <button
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-sm text-foreground transition hover:border-primary hover:text-primary dark:border-slate-800"
+                  onClick={handleLogout}
+                  type="button"
+                >
+                  <LogOut className="size-4" />
+                  Đăng xuất
+                </button>
               </div>
             </div>
           </header>

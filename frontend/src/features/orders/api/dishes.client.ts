@@ -4,6 +4,7 @@ import { endpoints } from "@/shared/api/endpoints";
 export type OrderDish = {
   id: string;
   name: string;
+  imageUrl?: string | null;
 };
 
 export function getOrderDishes(token: string) {

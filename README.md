@@ -27,6 +27,10 @@ Live demo will be added soon.
 |---|---|---|
 | ![Staff Orders Dashboard](./docs/screenshots/staff-orders-dashboard.png) | ![Admin Dashboard](./docs/screenshots/admin-dashboard.png) | ![QR Code Management](./docs/screenshots/QRCodeManagement.png) |
 
+| Staff Orders Mobile | Staff Order Detail Mobile |
+|---|---|
+| ![Staff Orders Mobile](./docs/screenshots/staff-orders-dashboard_mobile.png) | ![Staff Order Detail Mobile](./docs/screenshots/staff-orders-dashboard_mobile_detail.png) |
+
 ## Project Overview
 
 QR Food Order System is a fullstack restaurant management system designed for QR-based table ordering. Customers can scan a table QR code, check in, browse the menu, add dishes to cart, and place orders without creating an account.
