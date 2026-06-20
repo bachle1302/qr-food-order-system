@@ -125,26 +125,20 @@ export function AdminUsersPage() {
   );
 
   useEffect(() => {
-    async function loadToken() {
-      const accessToken = getAccessToken();
-      setToken(accessToken);
+    const accessToken = getAccessToken();
+    setToken(accessToken);
+
+    if (!accessToken) {
       setIsLoading(false);
-    }
-
-    loadToken();
-  }, []);
-
-  useEffect(() => {
-    if (!token) {
       return;
     }
 
-    const accessToken = token;
+    const tokenForRequest = accessToken;
 
     async function load() {
       setIsLoading(true);
       try {
-        await loadUsers(accessToken, roleFilter);
+        await loadUsers(tokenForRequest, roleFilter);
       } catch (loadError) {
         setError(getErrorMessage(loadError));
       } finally {
@@ -153,7 +147,7 @@ export function AdminUsersPage() {
     }
 
     load();
-  }, [loadUsers, roleFilter, token]);
+  }, [loadUsers, roleFilter]);
 
   function resetEditForm() {
     setEditForm(EMPTY_EDIT_FORM);

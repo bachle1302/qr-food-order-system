@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import type { Order, OrderStatus } from "../types";
 import {
@@ -68,10 +69,13 @@ export function OrderCard({
             >
               <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-orange-500/10 border border-orange-500/10 dark:border-orange-500/20">
                 {imageUrl ? (
-                  <img
-                    src={imageUrl}
+                  <Image
                     alt={name}
                     className="size-full object-cover"
+                    fill
+                    sizes="48px"
+                    src={imageUrl}
+                    unoptimized
                   />
                 ) : (
                   <div className="flex size-full items-center justify-center text-orange-600 dark:text-orange-300">

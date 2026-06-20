@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   CalendarClock,
@@ -43,8 +44,15 @@ import {
 } from "../lib/order-ui";
 import { OrderDetailPanel } from "./order-detail-panel";
 import { MobileOrderCard } from "./mobile-order-card";
-import { MobileOrderDetailSheet } from "./mobile-order-detail-sheet";
 import { OrderStatusBadge } from "./order-status-badge";
+
+const MobileOrderDetailSheet = dynamic(
+  () =>
+    import("./mobile-order-detail-sheet").then(
+      (module) => module.MobileOrderDetailSheet,
+    ),
+  { ssr: false },
+);
 
 type StatusFilter = (typeof ORDER_STATUSES)[number];
 
@@ -193,7 +201,7 @@ export function StaffOrdersDashboard() {
       const response = await getManagedOrders(
         {
           fromDate: fromDate || undefined,
-          tableId: tableIdFilter.trim() || undefined,
+          limit: 100,
           toDate: toDate || undefined,
         },
         accessToken,
@@ -201,7 +209,7 @@ export function StaffOrdersDashboard() {
       setOrders(response);
       setSelectedOrderId((current) => current ?? response[0]?.id ?? null);
     },
-    [fromDate, tableIdFilter, toDate],
+    [fromDate, toDate],
   );
 
   const loadDishes = useCallback(async (accessToken: string) => {
@@ -228,15 +236,11 @@ export function StaffOrdersDashboard() {
   useEffect(() => {
     let active = true;
 
-    queueMicrotask(() => {
-      if (!active) {
-        return;
-      }
-
-      const accessToken = getAccessToken();
+    const accessToken = getAccessToken();
+    if (active) {
       setToken(accessToken);
       setIsLoading(Boolean(accessToken));
-    });
+    }
 
     return () => {
       active = false;
@@ -253,11 +257,7 @@ export function StaffOrdersDashboard() {
     async function load() {
       setIsLoading(true);
       try {
-        await Promise.all([
-          loadOrders(accessToken),
-          loadDishes(accessToken),
-          loadTables(accessToken),
-        ]);
+        await loadOrders(accessToken);
       } catch (loadError) {
         setError(getErrorMessage(loadError));
       } finally {
@@ -266,7 +266,25 @@ export function StaffOrdersDashboard() {
     }
 
     load();
-  }, [loadDishes, loadOrders, loadTables, token]);
+  }, [loadOrders, token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const accessToken = token;
+
+    async function loadMetadata() {
+      try {
+        await Promise.all([loadDishes(accessToken), loadTables(accessToken)]);
+      } catch (loadError) {
+        setError(getErrorMessage(loadError));
+      }
+    }
+
+    loadMetadata();
+  }, [loadDishes, loadTables, token]);
 
   const handleRealtimeOrder = useCallback((event: { order: Order }) => {
     setOrders((current) => upsertOrder(current, event.order));
@@ -349,6 +367,15 @@ export function StaffOrdersDashboard() {
         return false;
       }
 
+      if (tableIdFilter.trim()) {
+        const tableQuery = normalizeSearch(tableIdFilter);
+        const tableLabel = getTableLabel(order.tableId, tableNameById);
+        const searchableTable = `${order.tableId} ${tableLabel}`.toLocaleLowerCase("vi-VN");
+        if (!searchableTable.includes(tableQuery)) {
+          return false;
+        }
+      }
+
       if (!customerSearch) {
         return true;
       }
@@ -388,6 +415,7 @@ export function StaffOrdersDashboard() {
     showUnservedOnly,
     sortOldestFirst,
     statusFilter,
+    tableIdFilter,
     tableNameById,
   ]);
 
@@ -941,21 +969,21 @@ export function StaffOrdersDashboard() {
           />
         </div>
 
-        <MobileOrderDetailSheet
-          actions={selectedOrder ? ORDER_TRANSITIONS[selectedOrder.status] : []}
-          dishImageById={dishImageById}
-          dishNameById={dishNameById}
-          isOpen={isMobileDetailOpen}
-          isUpdating={selectedOrder ? updatingOrderId === selectedOrder.id : false}
-          onClose={() => setIsMobileDetailOpen(false)}
-          onUpdateStatus={(status) => {
-            if (selectedOrder) {
+        {isMobileDetailOpen && selectedOrder ? (
+          <MobileOrderDetailSheet
+            actions={ORDER_TRANSITIONS[selectedOrder.status]}
+            dishImageById={dishImageById}
+            dishNameById={dishNameById}
+            isOpen={isMobileDetailOpen}
+            isUpdating={updatingOrderId === selectedOrder.id}
+            onClose={() => setIsMobileDetailOpen(false)}
+            onUpdateStatus={(status) => {
               handleUpdateStatus(selectedOrder.id, status);
-            }
-          }}
-          order={selectedOrder}
-          tableNameById={tableNameById}
-        />
+            }}
+            order={selectedOrder}
+            tableNameById={tableNameById}
+          />
+        ) : null}
     </div>
   );
 }

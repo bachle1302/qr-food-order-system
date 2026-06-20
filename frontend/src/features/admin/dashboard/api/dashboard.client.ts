@@ -1,6 +1,7 @@
 import { apiFetch } from "@/shared/api/client";
 import { endpoints } from "@/shared/api/endpoints";
 import type {
+  AdminDashboardResponse,
   DailySummary,
   DashboardOrder,
   DashboardOrderFilters,
@@ -75,3 +76,14 @@ export function getManagedOrders(
   );
 }
 
+export function getAdminDashboard(date: string, token: string) {
+  const query = new URLSearchParams({ date });
+
+  return apiFetch<AdminDashboardResponse>(
+    `${endpoints.admin.dashboard}?${query.toString()}`,
+    {
+      cache: "no-store",
+      token,
+    },
+  );
+}

@@ -82,8 +82,9 @@ public class OrderController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String tableId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
-        return orderService.getManageOrders(status, tableId, fromDate, toDate);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) Integer limit) {
+        return orderService.getManageOrders(status, tableId, fromDate, toDate, limit);
     }
 
     @GetMapping("/manage/new")

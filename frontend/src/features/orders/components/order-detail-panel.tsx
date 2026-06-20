@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ClipboardList } from "lucide-react";
 import type { Order, OrderStatus } from "../types";
 import {
@@ -101,10 +102,13 @@ export function OrderDetailPanel({
                 <span className="text-sm text-muted-foreground">{index + 1}</span>
                 <div className="relative size-12 overflow-hidden rounded-lg bg-orange-500/10 border border-orange-500/10 dark:border-orange-500/20">
                   {imageUrl ? (
-                    <img
-                      src={imageUrl}
+                    <Image
                       alt={name}
                       className="size-full object-cover"
+                      fill
+                      sizes="48px"
+                      src={imageUrl}
+                      unoptimized
                     />
                   ) : (
                     <div className="flex size-full items-center justify-center text-orange-600 dark:text-orange-300">

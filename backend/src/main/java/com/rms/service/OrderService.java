@@ -17,7 +17,7 @@ public interface OrderService {
     List<OrderResponse> getAll();
     List<OrderResponse> getByTableId(String tableId);
     List<OrderResponse> getPublicOrdersByCustomerSession(String customerSessionId, String qrToken);
-    List<OrderResponse> getManageOrders(String status, String tableId, LocalDate fromDate, LocalDate toDate);
+    List<OrderResponse> getManageOrders(String status, String tableId, LocalDate fromDate, LocalDate toDate, Integer limit);
     List<OrderResponse> getNewOrdersForManagement();
     List<OrderResponse> getKitchenOrders();
     void delete(String id);

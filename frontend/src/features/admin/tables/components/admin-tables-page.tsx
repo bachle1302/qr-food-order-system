@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy, Eye, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
@@ -16,8 +17,12 @@ import {
   regenerateQrToken,
   updateTable,
 } from "../api/tables.client";
-import { TableQrDialog } from "./table-qr-dialog";
 import type { AdminTable, TablePayload } from "../types";
+
+const TableQrDialog = dynamic(
+  () => import("./table-qr-dialog").then((module) => module.TableQrDialog),
+  { ssr: false },
+);
 
 type FormState = {
   id?: string;

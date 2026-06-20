@@ -170,6 +170,13 @@ Admin and staff pages include skeleton loading states and a free-hosting cold-st
 
 This keeps Vercel/Render Free deployments from showing a blank screen during the first backend wake-up.
 
+### Server-Side Fetching & Browser Network Visibility
+
+The application utilizes Next.js Server Components and Server-Side Rendering (SSR) for data fetching (using the `server-only` server API module).
+
+* **No Client-Side API Network Footprint:** When pages are requested, the Next.js server directly communicates with the Spring Boot backend server-to-server. The final HTML containing the data is then sent to the client. Therefore, raw API requests (such as to the `/api/dishes` or `/api/categories` endpoints) will not be visible in the browser's Network tab.
+* **Production Latency & Performance:** While local server-to-server calls have near-zero latency, production deployments (e.g., Next.js on Vercel and Backend on Render) introduce network latency depending on the geographic locations of the host servers. This network distance can affect page load times, especially for pages that await multiple backend API calls sequentially.
+
 ### Fullstack Production-Oriented Structure
 
 The project is structured as a fullstack monorepo with a Next.js frontend, Spring Boot backend, MongoDB database, Docker-based local environment, environment variables, route middleware, and GitHub Actions workflows.

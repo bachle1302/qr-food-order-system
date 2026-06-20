@@ -7,6 +7,7 @@ type ManageOrderParams = {
   tableId?: string;
   fromDate?: string;
   toDate?: string;
+  limit?: number;
 };
 
 function buildQuery(params: ManageOrderParams = {}) {
@@ -23,6 +24,9 @@ function buildQuery(params: ManageOrderParams = {}) {
   }
   if (params.toDate) {
     query.set("toDate", params.toDate);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
   }
 
   const value = query.toString();

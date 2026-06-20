@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -21,23 +22,19 @@ import { useDelayedLoadingMessage } from "@/shared/hooks/use-delayed-loading-mes
 import { ColdStartNotice } from "@/shared/ui/cold-start-notice";
 import { ErrorState } from "@/shared/ui/error-state";
 import { LoadingState } from "@/shared/ui/loading-state";
-import { getOrderDishes } from "@/features/orders/api/dishes.client";
-import { getOrderTables } from "@/features/orders/api/tables.client";
-import {
-  getDailyRevenue,
-  getDailySummary,
-  getManagedOrders,
-} from "../api/dashboard.client";
-import type { DailySummary, DashboardOrder } from "../types";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { getAdminDashboard } from "../api/dashboard.client";
+import type {
+  AdminDashboardRecentOrder,
+  AdminDashboardResponse,
+} from "../types";
+const RevenueChartCard = dynamic(
+  () =>
+    import("./revenue-chart-card").then((module) => module.RevenueChartCard),
+  {
+    loading: () => <RevenueChartCardSkeleton />,
+    ssr: false,
+  },
+);
 
 // --- TIỆN ÍCH ---
 const formatCurrency = (value: number) => {
@@ -192,14 +189,24 @@ function AdminDashboardSkeleton({
   );
 }
 
+function RevenueChartCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
+      <div className="flex items-center justify-between">
+        <SkeletonBlock className="h-5 w-40" />
+        <SkeletonBlock className="h-8 w-24" />
+      </div>
+      <SkeletonBlock className="mt-6 h-[250px] w-full md:h-72" />
+    </div>
+  );
+}
+
 export function AdminDashboardPage() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState(getTodayInputValue);
-  const [summary, setSummary] = useState<DailySummary | null>(null);
-  const [dailyRevenue, setDailyRevenue] = useState<number | null>(null);
-  const [orders, setOrders] = useState<DashboardOrder[]>([]);
-  const [dishNameById, setDishNameById] = useState<Record<string, string>>({});
-  const [tableNameById, setTableNameById] = useState<Record<string, string>>({});
+  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const showColdStartMessage = useDelayedLoadingMessage(
@@ -217,29 +224,8 @@ export function AdminDashboardPage() {
     }
 
     try {
-      const [
-        nextSummary,
-        nextDailyRevenue,
-        nextOrders,
-        nextDishes,
-        nextTables,
-      ] = await Promise.all([
-        getDailySummary(date, accessToken),
-        getDailyRevenue(date, accessToken),
-        getManagedOrders({}, accessToken),
-        getOrderDishes(accessToken),
-        getOrderTables(accessToken),
-      ]);
-
-      setSummary(nextSummary);
-      setDailyRevenue(nextDailyRevenue);
-      setOrders(nextOrders);
-      setDishNameById(
-        Object.fromEntries(nextDishes.map((dish) => [dish.id, dish.name]))
-      );
-      setTableNameById(
-        Object.fromEntries(nextTables.map((table) => [table.id, table.name]))
-      );
+      const nextDashboard = await getAdminDashboard(date, accessToken);
+      setDashboard(nextDashboard);
     } catch (loadError) {
       setError(getErrorMessage(loadError));
     } finally {
@@ -250,21 +236,19 @@ export function AdminDashboardPage() {
   useEffect(() => {
     let isMounted = true;
 
-    Promise.resolve().then(() => {
-      if (!isMounted) {
-        return;
-      }
+    if (!isMounted) {
+      return;
+    }
 
-      const accessToken = getAccessToken();
-      setToken(accessToken);
+    const accessToken = getAccessToken();
+    setToken(accessToken);
 
-      if (!accessToken) {
-        setIsLoading(false);
-        return;
-      }
+    if (!accessToken) {
+      setIsLoading(false);
+      return;
+    }
 
-      void loadDashboard(accessToken, selectedDate);
-    });
+    void loadDashboard(accessToken, selectedDate);
 
     return () => {
       isMounted = false;
@@ -277,101 +261,44 @@ export function AdminDashboardPage() {
     }
   }, [loadDashboard, selectedDate, token]);
 
-  const activeTableIds = useMemo(() => {
-    return new Set(
-      orders
-        .filter((o) => !["PAID", "CANCELLED", "COMPLETED"].includes(o.status))
-        .map((o) => o.tableId)
-    );
-  }, [orders]);
-
-  const totalTablesCount = useMemo(() => {
-    return Object.keys(tableNameById).length;
-  }, [tableNameById]);
-
   const tablesServingText = useMemo(() => {
-    return `${activeTableIds.size}/${totalTablesCount}`;
-  }, [activeTableIds, totalTablesCount]);
+    return `${dashboard?.activeTables ?? 0}/${dashboard?.totalTables ?? 0}`;
+  }, [dashboard]);
 
   const computedRevenueData = useMemo(() => {
-    const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-    const data = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-
-      const startOfDay = new Date(d);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(d);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const revenue = orders
-        .filter((order) => {
-          if (!["PAID", "COMPLETED"].includes(order.status)) return false;
-          const orderDate = new Date(order.createdAt);
-          return orderDate >= startOfDay && orderDate <= endOfDay;
-        })
-        .reduce((sum, order) => sum + (order.finalPrice || order.totalPrice || 0), 0);
-
-      const dayName = weekdays[d.getDay()];
-      data.push({ name: dayName, revenue });
-    }
-
-    return data;
-  }, [orders]);
+    return dashboard?.revenueSeries ?? [];
+  }, [dashboard]);
 
   const computedTopItems = useMemo(() => {
-    const itemSales = new Map<string, { name: string; sales: number; revenue: number }>();
-
-    for (const order of orders) {
-      if (!["PAID", "COMPLETED"].includes(order.status)) continue;
-      for (const item of order.items) {
-        const dishId = item.dishId;
-        const current = itemSales.get(dishId) || {
-          name: dishNameById[dishId] || dishId,
-          sales: 0,
-          revenue: 0,
-        };
-        current.sales += item.quantity;
-        current.revenue += item.quantity * item.pricePerUnit;
-        itemSales.set(dishId, current);
-      }
-    }
-
-    const sorted = Array.from(itemSales.values())
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 4);
-
-    return sorted;
-  }, [orders, dishNameById]);
+    return dashboard?.topItems ?? [];
+  }, [dashboard]);
 
   const computedRecentOrders = useMemo(() => {
-    return [...orders]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)
-      .map((order) => {
+    return (dashboard?.recentOrders ?? []).map(
+      (order: AdminDashboardRecentOrder) => {
         const time = new Date(order.createdAt).toLocaleTimeString("vi-VN", {
           hour: "2-digit",
           minute: "2-digit",
         });
 
         const itemsSummary = order.items
-          .map((item) => `${item.quantity}x ${dishNameById[item.dishId] || "Món"}`)
+          .map((item) => `${item.quantity}x ${item.dishName || "Món"}`)
           .join(", ");
 
         return {
           id: `#${order.id.slice(-4).toUpperCase()}`,
-          table: tableNameById[order.tableId] || `Bàn ${order.tableId.slice(-3).toUpperCase()}`,
+          table:
+            order.tableName ||
+            `Bàn ${order.tableId.slice(-3).toUpperCase()}`,
           time,
           items: itemsSummary,
-          total: order.finalPrice || order.totalPrice,
+          total: order.finalPrice || order.totalPrice || 0,
           status: order.status,
           realId: order.id,
         };
-      });
-  }, [orders, dishNameById, tableNameById]);
-
+      },
+    );
+  }, [dashboard]);
   if (token === undefined) {
     return <LoadingState label="Đang kiểm tra phiên đăng nhập..." />;
   }
@@ -444,21 +371,21 @@ export function AdminDashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <StatCard
               title="Doanh thu hôm nay"
-              value={formatCurrency(dailyRevenue ?? summary?.totalRevenue ?? 0)}
+              value={formatCurrency(dashboard?.todayRevenue ?? 0)}
               trend={15.2}
               icon={ReceiptText}
               colorClass="bg-gradient-to-br from-orange-400 to-orange-600 shadow-orange-200"
             />
             <StatCard
               title="Tổng Đơn hàng"
-              value={formatNumber(summary?.totalOrders ?? 0)}
+              value={formatNumber(dashboard?.todayOrders ?? 0)}
               trend={8.5}
               icon={UtensilsCrossed}
               colorClass="bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-200"
             />
             <StatCard
               title="Giá trị TB/Đơn"
-              value={formatCurrency(summary?.averageOrderValue ?? 0)}
+              value={formatCurrency(dashboard?.averageOrderValue ?? 0)}
               trend={-2.4}
               icon={TrendingUp}
               colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-200"
@@ -473,49 +400,7 @@ export function AdminDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Chart: Revenue */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 lg:col-span-2">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-slate-100">Doanh thu 7 ngày qua</h3>
-                <select className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-sm rounded-lg px-3 py-1.5 outline-none text-gray-600 dark:text-slate-300">
-                  <option>Tuần này</option>
-                  <option>Tháng này</option>
-                </select>
-              </div>
-              <div className="h-[250px] md:h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={computedRevenueData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" className="dark:stroke-slate-800" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 12 }} dy={10} />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#9ca3af", fontSize: 12 }}
-                      tickFormatter={(value) => `${value / 1000000}M`}
-                      dx={-10}
-                    />
-                    <Tooltip
-                      formatter={(value: unknown) => formatCurrency(Number(value))}
-                      contentStyle={{
-                        borderRadius: "12px",
-                        border: "none",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                        backgroundColor: "#1e293b",
-                        color: "#fff",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#f97316"
-                      strokeWidth={4}
-                      dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
-                      activeDot={{ r: 8, strokeWidth: 0, fill: "#f97316" }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            <RevenueChartCard data={computedRevenueData} />
 
             {/* Top Items */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col">
