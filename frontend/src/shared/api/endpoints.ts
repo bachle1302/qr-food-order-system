@@ -57,4 +57,7 @@ export const endpoints = {
       `/api/orders/${encodeURIComponent(orderId)}/status`,
     events: "/api/orders/events",
   },
+  admin: {
+    dashboard: "/api/admin/dashboard",
+  },
 } as const;

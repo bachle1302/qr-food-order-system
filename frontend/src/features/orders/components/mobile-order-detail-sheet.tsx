@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   Clock3,
   MessageSquareText,
@@ -152,12 +153,16 @@ export function MobileOrderDetailSheet({
                     <span className="text-sm text-muted-foreground">{index + 1}</span>
                     <div className="size-14 overflow-hidden rounded-xl border border-orange-500/10 bg-orange-500/10 dark:border-orange-500/20">
                       {imageUrl ? (
-                        <div
-                          aria-label={name}
-                          className="size-full bg-cover bg-center"
-                          role="img"
-                          style={{ backgroundImage: `url("${imageUrl}")` }}
-                        />
+                        <div className="relative size-full">
+                          <Image
+                            alt={name}
+                            className="object-cover"
+                            fill
+                            sizes="56px"
+                            src={imageUrl}
+                            unoptimized
+                          />
+                        </div>
                       ) : (
                         <div className="flex size-full items-center justify-center text-orange-600 dark:text-orange-300">
                           <span className="text-[10px] font-bold">Food</span>

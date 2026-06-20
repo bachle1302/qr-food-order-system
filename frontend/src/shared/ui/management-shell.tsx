@@ -98,8 +98,7 @@ function isActivePath(pathname: string, href: string) {
 export function ManagementShell({ children }: ManagementShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [role, setRole] = useState<AuthRole | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
+  const [role, setRole] = useState<AuthRole | null>(() => getAuthRole());
 
   useEffect(() => {
     const token = getAccessToken();
@@ -117,7 +116,6 @@ export function ManagementShell({ children }: ManagementShellProps) {
     }
 
     setRole(userRole);
-    setIsChecking(false);
 
     if (pathname.startsWith("/admin") && userRole !== "ADMIN") {
       router.push("/staff/orders");
@@ -126,18 +124,7 @@ export function ManagementShell({ children }: ManagementShellProps) {
 
   const meta = getPageMeta(pathname);
 
-  if (isChecking) {
-    return (
-      <div className="grid h-screen place-items-center bg-gray-50 dark:bg-slate-950 text-foreground">
-        <div className="flex flex-col items-center gap-2">
-          <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Đang xác thực quyền truy cập...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (pathname.startsWith("/admin") && role !== "ADMIN") {
+  if (pathname.startsWith("/admin") && role !== null && role !== "ADMIN") {
     return null;
   }
 

@@ -81,6 +81,7 @@ public class SecurityConfig {
                         
                         // ADMIN có quyền truy cập tất cả
                         // API Thống kê/Doanh thu - chỉ ADMIN
+                        .requestMatchers("/api/admin/dashboard/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/orders/summary/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/orders/revenue/**").hasAuthority("ADMIN")
 

@@ -293,7 +293,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderResponse> getManageOrders(String status, String tableId, LocalDate fromDate, LocalDate toDate) {
+    public List<OrderResponse> getManageOrders(
+            String status,
+            String tableId,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Integer limit) {
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
@@ -325,6 +330,12 @@ public class OrderServiceImpl implements OrderService {
         }
 
         query.with(Sort.by(Sort.Direction.DESC, "createdAt"));
+        if (limit != null) {
+            if (limit <= 0) {
+                throw new BadRequestException("limit must be greater than 0");
+            }
+            query.limit(Math.min(limit, 500));
+        }
         return mongoTemplate.find(query, Order.class).stream().map(this::toResponse).toList();
     }
 
